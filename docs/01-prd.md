@@ -6,7 +6,8 @@
 |---|---|
 | **Project** | PassDown, a course-material sharing platform |
 | **Course** | CSE 309 Web Applications & Internet, Independent University, Bangladesh (IUB) |
-| **Author** | [Your Full Name] |
+| **Author** | Tanjil Hasan Emon |
+| **ID** | 2331024 |
 | **Version** | 1.0 (Draft) |
 | **Date** | October 2026 |
 | **Related documents** | [SRS: Software Requirements Specification](./02-srs.md) · [TDD: Technical Design Document](./03-tdd.md) |
