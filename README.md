@@ -14,7 +14,7 @@ links to course resources, ahead of the semester and without chasing seniors.
 ![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?logo=vercel&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-[Live Demo](https://passdown-weld.vercel.app/ · [Documentation](./docs) · [Report an Issue](../../issues)
+[Live Demo](https://passdown-weld.vercel.app/) · [Documentation](./docs) · [Report an Issue](../../issues)
 
 </div>
 
