@@ -172,6 +172,6 @@ Distributed under the MIT License. See [`LICENSE`](./LICENSE) for details.
 
 <div align="center">
 
-Built by **[Tanjil Hasan Emon]** · IUB CSE
+Built by **Tanjil Hasan Emon** · IUB CSE
 
 </div>
