@@ -53,11 +53,11 @@ at Independent University, Bangladesh (IUB).
 The project ships in two releases.
 
 **🟢 MVP: Mid-term demo (v0.1.0)**
-- [ ] Course management (CRUD)
-- [ ] Core Materials (CRUD)
-- [ ] Contributions (CRUD & moderation status)
-- [ ] Requests (CRUD & fulfillment)
-- [ ] React + TypeScript UI connected to the REST API
+- [x] Course management (CRUD)
+- [x] Core Materials (CRUD)
+- [x] Contributions (CRUD & moderation status)
+- [x] Requests (CRUD & fulfillment)
+- [x] React + TypeScript UI connected to the REST API
 
 **🔵 Beta: Final demo (v0.2.0)**
 - [ ] Registration and login (JWT)
