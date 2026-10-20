@@ -1,6 +1,9 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { ToastProvider } from "./components/ToastContext";
+import { AdminCoursesPage } from "./pages/AdminCoursesPage";
+import { AdminMaterialsPage } from "./pages/AdminMaterialsPage";
+import { CourseListPage } from "./pages/CourseListPage";
 
 function PlaceholderPage({ title, subtitle }: { title: string; subtitle: string }) {
   return (
@@ -18,15 +21,7 @@ export default function App() {
       <ToastProvider>
         <Layout>
           <Routes>
-            <Route
-              path="/"
-              element={
-                <PlaceholderPage
-                  title="Course Catalog"
-                  subtitle="Search and browse university courses, curated core materials, student contributions, and requests."
-                />
-              }
-            />
+            <Route path="/" element={<CourseListPage />} />
             <Route
               path="/courses/:id"
               element={
@@ -36,24 +31,8 @@ export default function App() {
                 />
               }
             />
-            <Route
-              path="/admin/courses"
-              element={
-                <PlaceholderPage
-                  title="Manage Courses"
-                  subtitle="Create, update, and delete courses in the catalog."
-                />
-              }
-            />
-            <Route
-              path="/admin/materials"
-              element={
-                <PlaceholderPage
-                  title="Manage Core Materials"
-                  subtitle="Curate official slides, notes, past papers, and reference books per course."
-                />
-              }
-            />
+            <Route path="/admin/courses" element={<AdminCoursesPage />} />
+            <Route path="/admin/materials" element={<AdminMaterialsPage />} />
             <Route
               path="/admin/moderation"
               element={
