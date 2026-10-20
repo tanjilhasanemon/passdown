@@ -56,7 +56,10 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    """Import all ORM models and create database tables registered on Base.metadata."""
+    """Import all ORM models, create tables, and seed initial MVP data if empty."""
     import models  # noqa: F401
+    from scripts.seed_mvp import seed_mvp_data
 
     Base.metadata.create_all(bind=engine)
+    with SessionLocal() as session:
+        seed_mvp_data(session)
