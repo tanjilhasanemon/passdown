@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.v1 import core_materials, courses
 from core.config import settings
 from core.database import init_db
 
@@ -31,6 +32,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(courses.router, prefix=settings.api_v1_prefix)
+app.include_router(core_materials.router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/api/health", tags=["System"])
