@@ -12,3 +12,9 @@ frontend/dist/
 .vercel/
 .vscode/*
 !.vscode/extensions.json
+
+# Local SQLite databases
+*.db
+*.db-journal
+*.db-wal
+*.sqlite3
