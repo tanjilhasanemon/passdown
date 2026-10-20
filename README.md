@@ -7,14 +7,20 @@
 A course-material sharing platform where students find, request, and contribute
 links to course resources, ahead of the semester and without chasing seniors.
 
-[https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=white]
-[https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white]
-[https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white]
-[https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white]
-[https://img.shields.io/badge/Deployed%20on-Vercel-000000?logo=vercel&logoColor=white]
-[https://img.shields.io/badge/License-MIT-green]
+<p align="center">
+  <img src="https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=white" alt="React TypeScript" />
+  <img src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white" alt="FastAPI Python" />
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Deployed%20on-Vercel-000000?logo=vercel&logoColor=white" alt="Deployed on Vercel" />
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="License MIT" />
+</p>
 
-[Live Demo](https://passdown-weld.vercel.app/) · [Documentation](./docs) · [Report an Issue](../../issues)
+<p align="center">
+  <a href="https://passdown-weld.vercel.app/">Live Demo</a> ·
+  <a href="./docs">Documentation</a> ·
+  <a href="../../issues">Report an Issue</a>
+</p>
 
 </div>
 
