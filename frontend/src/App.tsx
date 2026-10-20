@@ -3,17 +3,9 @@ import { Layout } from "./components/Layout";
 import { ToastProvider } from "./components/ToastContext";
 import { AdminCoursesPage } from "./pages/AdminCoursesPage";
 import { AdminMaterialsPage } from "./pages/AdminMaterialsPage";
+import { AdminModerationPage } from "./pages/AdminModerationPage";
+import { CourseDetailPage } from "./pages/CourseDetailPage";
 import { CourseListPage } from "./pages/CourseListPage";
-
-function PlaceholderPage({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <section className="hero-banner">
-      <span className="hero-eyebrow">PassDown MVP v0.1.0</span>
-      <h1 className="hero-title">{title}</h1>
-      <p className="hero-subtitle">{subtitle}</p>
-    </section>
-  );
-}
 
 export default function App() {
   return (
@@ -22,26 +14,10 @@ export default function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<CourseListPage />} />
-            <Route
-              path="/courses/:id"
-              element={
-                <PlaceholderPage
-                  title="Course Workspace"
-                  subtitle="Core materials, approved student contributions, and open material requests."
-                />
-              }
-            />
+            <Route path="/courses/:id" element={<CourseDetailPage />} />
             <Route path="/admin/courses" element={<AdminCoursesPage />} />
             <Route path="/admin/materials" element={<AdminMaterialsPage />} />
-            <Route
-              path="/admin/moderation"
-              element={
-                <PlaceholderPage
-                  title="Contribution Moderation Queue"
-                  subtitle="Review, approve, or reject student-submitted resource links."
-                />
-              }
-            />
+            <Route path="/admin/moderation" element={<AdminModerationPage />} />
           </Routes>
         </Layout>
       </ToastProvider>
