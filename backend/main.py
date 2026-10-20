@@ -1,6 +1,11 @@
+import sys
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
+
+BACKEND_DIR = Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -41,11 +46,11 @@ app.include_router(requests.router, prefix=settings.api_v1_prefix)
 
 @app.get("/api/health", tags=["System"])
 def health() -> dict[str, str]:
+    init_db()
     return {"status": "ok"}
 
 
-FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+FRONTEND_DIR = BACKEND_DIR.parent / "frontend" / "dist"
 
-# dist/ only exists after `npm run build`; in dev the Vite server serves the UI.
 if FRONTEND_DIR.is_dir() and hasattr(app, "frontend"):
     app.frontend("/", directory=FRONTEND_DIR)
