@@ -7,12 +7,12 @@
 A course-material sharing platform where students find, request, and contribute
 links to course resources, ahead of the semester and without chasing seniors.
 
-![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white)
-![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-000000?logo=vercel&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green)
+[https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=white]
+[https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white]
+[https://img.shields.io/badge/FastAPI-Python-009688?logo=fastapi&logoColor=white]
+[https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white]
+[https://img.shields.io/badge/Deployed%20on-Vercel-000000?logo=vercel&logoColor=white]
+[https://img.shields.io/badge/License-MIT-green]
 
 [Live Demo](https://passdown-weld.vercel.app/) · [Documentation](./docs) · [Report an Issue](../../issues)
 
@@ -46,20 +46,20 @@ at Independent University, Bangladesh (IUB).
 
 The project ships in two releases.
 
-**🟢 MVP: Mid-term demo (runs locally)**
+**🟢 MVP: Mid-term demo (v0.1.0)**
 - [ ] Course management (CRUD)
 - [ ] Core Materials (CRUD)
-- [ ] Contributions (CRUD)
-- [ ] Requests (CRUD)
+- [ ] Contributions (CRUD & moderation status)
+- [ ] Requests (CRUD & fulfillment)
 - [ ] React + TypeScript UI connected to the REST API
 
-**🔵 Beta: Final demo**
+**🔵 Beta: Final demo (v0.2.0)**
 - [ ] Registration and login (JWT)
 - [ ] Role-Based Access Control (Admin / Student / Guest)
 - [ ] Security scopes and permissions
-- [ ] Contribution approval workflow
-- [ ] User profile dashboard
-- [ ] Production deployment on Vercel
+- [ ] Contribution approval workflow (admin-restricted)
+- [ ] User profile and admin dashboards
+- [ ] Production deployment on Vercel with Supabase PostgreSQL
 
 ## 👥 Roles
 
@@ -74,10 +74,10 @@ The project ships in two releases.
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React, TypeScript, Vite |
-| **Backend** | FastAPI (Python), layered architecture |
-| **Database** | PostgreSQL via SQLAlchemy (Supabase) |
-| **Auth** | OAuth2 password flow, JWT, FastAPI security scopes |
+| **Frontend** | React, TypeScript (strict), Vite, React Router, Axios |
+| **Backend** | FastAPI (Python 3.10+), Pydantic v2, layered architecture |
+| **Database** | SQLite (local) / PostgreSQL on Supabase (production) via SQLAlchemy 2.0 |
+| **Auth** | OAuth2 password flow, JWT (HS256), Argon2id, FastAPI security scopes |
 | **Hosting** | Vercel, with frontend and backend in one project |
 
 ## 📁 Project Structure
@@ -87,6 +87,7 @@ passdown/
 ├── backend/        FastAPI app (all routes served under /api)
 ├── frontend/       Vite + React + TypeScript
 ├── docs/           PRD, SRS and TDD
+├── .env.example    Environment variable template
 ├── vercel.json     Routes /api/* to the backend, everything else to the frontend
 └── pyproject.toml
 ```
@@ -101,11 +102,16 @@ passdown/
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/<your-username>/passdown.git
+git clone [https://github.com/tanjilhasanemon/passdown.git](https://github.com/tanjilhasanemon/passdown.git)
 cd passdown
 ```
 
-### 2. Run the backend (terminal 1)
+### 2. Configure environment variables (optional for local SQLite)
+```bash
+cp .env.example backend/.env
+```
+
+### 3. Run the backend (terminal 1)
 ```bash
 cd backend
 python -m venv .venv
@@ -113,9 +119,9 @@ source .venv/bin/activate        # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 fastapi dev main.py
 ```
-API docs are available at <http://localhost:8000/docs>.
+API docs are available at <http://localhost:8000/api/docs>.
 
-### 3. Run the frontend (terminal 2)
+### 4. Run the frontend (terminal 2)
 ```bash
 cd frontend
 npm install
@@ -138,7 +144,7 @@ The frontend and backend deploy together as **one Vercel project**.
 
 1. Push the repository to GitHub.
 2. Import it at [vercel.com/new](https://vercel.com/new) and keep **Root Directory** as `./`.
-3. Add environment variables in the Vercel dashboard when the database is connected (never commit them).
+3. Add environment variables (`DATABASE_URL`) in the Vercel dashboard when the database is connected (never commit them).
 
 Every push to `main` redeploys automatically.
 
@@ -146,16 +152,16 @@ Every push to `main` redeploys automatically.
 
 Project documents live in the [`docs/`](./docs) folder:
 
-- **PRD**: Product Requirements Document
-- **SRS**: Software Requirements Specification
-- **TDD**: Technical Design Document
+- **[PRD](./docs/01-prd.md)**: Product Requirements Document
+- **[SRS](./docs/02-srs.md)**: Software Requirements Specification
+- **[TDD](./docs/03-tdd.md)**: Technical Design Document
 
 ## 🤝 Contributing
 
 This is an academic project, but the workflow follows normal open-source practice:
 
 1. Create an issue for the task.
-2. Branch from `main` (for example `feat/<short-description>` or `docs/<short-description>`).
+2. Branch from `main` (for example `tanjilhasanemon/#<issue>-<short-description>` or `feat/<short-description>`).
 3. Commit using [Conventional Commits](https://www.conventionalcommits.org/).
 4. Open a pull request that references the issue (`Closes #<number>`).
 
@@ -172,6 +178,6 @@ Distributed under the MIT License. See [`LICENSE`](./LICENSE) for details.
 
 <div align="center">
 
-Built by **Tanjil Hasan Emon** · IUB CSE
+Built by **Tanjil Hasan Emon** (ID: 2331024) · IUB CSE
 
 </div>
