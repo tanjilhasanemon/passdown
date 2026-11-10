@@ -26,6 +26,12 @@ from schemas.request import (
     RequestRead,
     RequestUpdate,
 )
+from schemas.stats import (
+    ContributionStatusCounts,
+    PlatformStatsRead,
+    RequestStatusCounts,
+    UserSummaryRead,
+)
 from schemas.user import (
     UserActiveUpdate,
     UserPasswordUpdate,
@@ -63,4 +69,8 @@ __all__ = [
     "UserProfileUpdate",
     "UserPasswordUpdate",
     "UserActiveUpdate",
+    "ContributionStatusCounts",
+    "RequestStatusCounts",
+    "UserSummaryRead",
+    "PlatformStatsRead",
 ]
