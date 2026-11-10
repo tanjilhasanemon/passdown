@@ -1,6 +1,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from models.app_user import AppUser
 from models.contribution import Contribution
 from schemas.contribution import ContributionCreate, ContributionUpdate
 
@@ -40,6 +41,7 @@ class ContributionRepository:
         db: Session,
         status_filter: str | None = None,
         course_id: int | None = None,
+        author_id: int | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> tuple[list[Contribution], int]:
@@ -48,6 +50,8 @@ class ContributionRepository:
             filters.append(Contribution.status == status_filter)
         if course_id is not None:
             filters.append(Contribution.course_id == course_id)
+        if author_id is not None:
+            filters.append(Contribution.author_id == author_id)
 
         count_stmt = select(func.count()).select_from(Contribution)
         stmt = select(Contribution).options(joinedload(Contribution.course))
@@ -76,10 +80,16 @@ class ContributionRepository:
         return db.scalar(stmt)
 
     @staticmethod
-    def create(db: Session, course_id: int, data: ContributionCreate) -> Contribution:
+    def create(
+        db: Session,
+        course_id: int,
+        data: ContributionCreate,
+        author: AppUser,
+    ) -> Contribution:
         contribution = Contribution(
             course_id=course_id,
-            author_name=data.author_name,
+            author_id=author.id,
+            author_name=author.name,
             title=data.title,
             type=data.type,
             url=data.url,
@@ -95,8 +105,6 @@ class ContributionRepository:
     def update(
         db: Session, contribution: Contribution, data: ContributionUpdate
     ) -> Contribution:
-        if data.author_name is not None:
-            contribution.author_name = data.author_name
         contribution.title = data.title
         contribution.type = data.type
         contribution.url = data.url

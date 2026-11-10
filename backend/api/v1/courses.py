@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, Security, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from dependencies.auth import get_current_user
+from models.app_user import AppUser
 from schemas.common import PaginatedResponse
 from schemas.course import CourseCreate, CourseRead, CourseUpdate
 from services.course import CourseService
@@ -35,6 +37,7 @@ def get_course(
 def create_course(
     data: CourseCreate,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
 ) -> CourseRead:
     course = CourseService.create_course(db, data)
     return CourseRead.model_validate(course)
@@ -45,6 +48,7 @@ def update_course(
     course_id: int,
     data: CourseUpdate,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
 ) -> CourseRead:
     course = CourseService.update_course(db, course_id, data)
     return CourseRead.model_validate(course)
@@ -54,6 +58,7 @@ def update_course(
 def delete_course(
     course_id: int,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
 ) -> Response:
     CourseService.delete_course(db, course_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

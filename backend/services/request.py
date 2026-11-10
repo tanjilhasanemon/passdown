@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from models.app_user import AppUser
 from models.request import MaterialRequest
 from repositories.request import RequestRepository
 from schemas.common import PaginatedResponse
@@ -48,26 +49,59 @@ class RequestService:
 
     @staticmethod
     def create_request(
-        db: Session, course_id: int, data: MaterialRequestCreate
+        db: Session,
+        course_id: int,
+        data: MaterialRequestCreate,
+        current_user: AppUser,
     ) -> MaterialRequest:
         CourseService.get_course(db, course_id)
-        return RequestRepository.create(db, course_id=course_id, data=data)
+        return RequestRepository.create(
+            db, course_id=course_id, data=data, author=current_user
+        )
 
     @staticmethod
     def update_request(
-        db: Session, request_id: int, data: MaterialRequestUpdate
+        db: Session,
+        request_id: int,
+        data: MaterialRequestUpdate,
+        current_user: AppUser,
     ) -> MaterialRequest:
         material_request = RequestService.get_request(db, request_id)
+        if current_user.role != "admin" and material_request.author_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only edit your own requests",
+            )
         return RequestRepository.update(
             db, material_request=material_request, data=data
         )
 
     @staticmethod
-    def fulfill_request(db: Session, request_id: int) -> MaterialRequest:
+    def fulfill_request(
+        db: Session,
+        request_id: int,
+        current_user: AppUser,
+    ) -> MaterialRequest:
         material_request = RequestService.get_request(db, request_id)
+        # FR-35: Owner or Admin can mark a request fulfilled
+        if current_user.role != "admin" and material_request.author_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the request owner or an admin can mark this request as fulfilled",
+            )
         return RequestRepository.mark_fulfilled(db, material_request=material_request)
 
     @staticmethod
-    def delete_request(db: Session, request_id: int) -> None:
+    def delete_request(
+        db: Session,
+        request_id: int,
+        current_user: AppUser,
+    ) -> None:
         material_request = RequestService.get_request(db, request_id)
+        # FR-35: Owner or Admin can delete a request
+        if current_user.role != "admin" and material_request.author_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only delete your own requests",
+            )
         RequestRepository.delete(db, material_request=material_request)

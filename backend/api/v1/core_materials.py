@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, Security, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from dependencies.auth import get_current_user
+from models.app_user import AppUser
 from schemas.common import MaterialType, PaginatedResponse
 from schemas.core_material import (
     CoreMaterialCreate,
@@ -45,8 +47,11 @@ def create_core_material(
     course_id: int,
     data: CoreMaterialCreate,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Security(get_current_user, scopes=["materials:write"]),
 ) -> CoreMaterialRead:
-    material = CoreMaterialService.create_core_material(db, course_id=course_id, data=data)
+    material = CoreMaterialService.create_core_material(
+        db, course_id=course_id, data=data
+    )
     return CoreMaterialRead.model_validate(material)
 
 
@@ -70,8 +75,11 @@ def update_core_material(
     material_id: int,
     data: CoreMaterialUpdate,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Security(get_current_user, scopes=["materials:write"]),
 ) -> CoreMaterialRead:
-    material = CoreMaterialService.update_core_material(db, material_id=material_id, data=data)
+    material = CoreMaterialService.update_core_material(
+        db, material_id=material_id, data=data
+    )
     return CoreMaterialRead.model_validate(material)
 
 
@@ -82,6 +90,7 @@ def update_core_material(
 def delete_core_material(
     material_id: int,
     db: Session = Depends(get_db),
+    _current_user: AppUser = Security(get_current_user, scopes=["materials:write"]),
 ) -> Response:
     CoreMaterialService.delete_core_material(db, material_id=material_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

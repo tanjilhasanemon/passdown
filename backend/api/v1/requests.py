@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, Security, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
+from dependencies.auth import get_current_user
+from models.app_user import AppUser
 from schemas.common import PaginatedResponse, RequestStatus
 from schemas.request import (
     MaterialRequestCreate,
@@ -45,9 +47,10 @@ def create_request(
     course_id: int,
     data: MaterialRequestCreate,
     db: Session = Depends(get_db),
+    current_user: AppUser = Security(get_current_user, scopes=["requests:write"]),
 ) -> MaterialRequestRead:
     material_request = RequestService.create_request(
-        db, course_id=course_id, data=data
+        db, course_id=course_id, data=data, current_user=current_user
     )
     return MaterialRequestRead.model_validate(material_request)
 
@@ -72,9 +75,10 @@ def update_request(
     request_id: int,
     data: MaterialRequestUpdate,
     db: Session = Depends(get_db),
+    current_user: AppUser = Security(get_current_user, scopes=["requests:write"]),
 ) -> MaterialRequestRead:
     material_request = RequestService.update_request(
-        db, request_id=request_id, data=data
+        db, request_id=request_id, data=data, current_user=current_user
     )
     return MaterialRequestRead.model_validate(material_request)
 
@@ -86,8 +90,11 @@ def update_request(
 def fulfill_request(
     request_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser = Security(get_current_user, scopes=["requests:write"]),
 ) -> MaterialRequestRead:
-    material_request = RequestService.fulfill_request(db, request_id=request_id)
+    material_request = RequestService.fulfill_request(
+        db, request_id=request_id, current_user=current_user
+    )
     return MaterialRequestRead.model_validate(material_request)
 
 
@@ -98,6 +105,9 @@ def fulfill_request(
 def delete_request(
     request_id: int,
     db: Session = Depends(get_db),
+    current_user: AppUser = Security(get_current_user, scopes=["requests:write"]),
 ) -> Response:
-    RequestService.delete_request(db, request_id=request_id)
+    RequestService.delete_request(
+        db, request_id=request_id, current_user=current_user
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
