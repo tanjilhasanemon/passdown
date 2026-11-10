@@ -1,7 +1,7 @@
 from collections.abc import Generator
 from typing import Any
 
-from sqlalchemy import Engine, create_engine, event, text
+from sqlalchemy import Engine, create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
@@ -58,17 +58,37 @@ SessionLocal = sessionmaker(
 _db_initialized = False
 
 
+def _ensure_beta_columns() -> None:
+    """Ensure author_id columns exist on contribution and request tables when upgrading from MVP."""
+    inspector = inspect(engine)
+    for table_name in ("contribution", "request"):
+        if not inspector.has_table(table_name):
+            continue
+        existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
+        if "author_id" not in existing_cols:
+            with engine.begin() as conn:
+                conn.execute(
+                    text(
+                        f"ALTER TABLE {table_name} ADD COLUMN author_id INTEGER REFERENCES app_user(id) ON DELETE SET NULL"
+                    )
+                )
+
+
 def init_db() -> None:
-    """Import all ORM models, create tables, and seed initial MVP data if empty."""
+    """Import all ORM models, create tables, migrate Beta columns, and seed initial data."""
     global _db_initialized
     if _db_initialized:
         return
 
     import models  # noqa: F401
+    from scripts.seed_admin import seed_admin_user, seed_demo_student
     from scripts.seed_mvp import seed_mvp_data
 
     Base.metadata.create_all(bind=engine)
+    _ensure_beta_columns()
     with SessionLocal() as session:
+        seed_admin_user(session)
+        seed_demo_student(session)
         seed_mvp_data(session)
     _db_initialized = True
 

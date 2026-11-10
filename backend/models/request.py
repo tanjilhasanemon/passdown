@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from core.database import Base
 
 if TYPE_CHECKING:
+    from models.app_user import AppUser
     from models.course import Course
 
 
@@ -19,6 +20,12 @@ class MaterialRequest(Base):
         ForeignKey("course.id", ondelete="CASCADE"),
         index=True,
         nullable=False,
+    )
+    author_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("app_user.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
     )
     author_name: Mapped[str] = mapped_column(String(100), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -43,7 +50,17 @@ class MaterialRequest(Base):
     )
 
     course: Mapped["Course"] = relationship("Course", back_populates="requests")
+    author: Mapped["AppUser | None"] = relationship(
+        "AppUser", back_populates="requests"
+    )
+
+    @property
+    def course_code(self) -> str | None:
+        return self.course.code if self.course else None
+
+    @property
+    def course_title(self) -> str | None:
+        return self.course.title if self.course else None
 
 
-# Alias matching the ERD name
 Request = MaterialRequest
