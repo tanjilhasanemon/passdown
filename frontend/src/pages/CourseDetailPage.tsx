@@ -9,6 +9,7 @@ import {
   ExternalLink,
   Eye,
   HelpCircle,
+  LogIn,
   PlusCircle,
   ShieldAlert,
   Trash2,
@@ -18,8 +19,10 @@ import {
 import { coursesApi } from "../api/courses";
 import { materialsApi } from "../api/materials";
 import { contributionsApi } from "../api/contributions";
+import { meApi } from "../api/me";
 import { requestsApi } from "../api/requests";
 import { extractErrorMessage } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import {
   ContributionStatusBadge,
   MaterialTypeBadge,
@@ -46,6 +49,7 @@ type ActiveTab = "materials" | "contributions" | "requests";
 export function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const courseId = Number(id) || 0;
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const { showToast } = useToast();
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -54,23 +58,18 @@ export function CourseDetailPage() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("materials");
 
-  // Core Materials state
   const [materials, setMaterials] = useState<CoreMaterial[]>([]);
   const [materialTypeFilter, setMaterialTypeFilter] = useState<MaterialType | "">("");
 
-  // Contributions state (Approved public + Pending in this course)
   const [approvedContributions, setApprovedContributions] = useState<Contribution[]>([]);
-  const [pendingContributions, setPendingContributions] = useState<Contribution[]>([]);
+  const [myPendingInCourse, setMyPendingInCourse] = useState<Contribution[]>([]);
   const [contribTypeFilter, setContribTypeFilter] = useState<MaterialType | "">("");
 
-  // Requests state
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
   const [requestStatusFilter, setRequestStatusFilter] = useState<RequestStatus | "">("");
 
-  // Contribution Create / Edit / Inspect Modals
   const [isContribCreateOpen, setIsContribCreateOpen] = useState<boolean>(false);
   const [contribCreateForm, setContribCreateForm] = useState<ContributionCreatePayload>({
-    author_name: "",
     title: "",
     type: "notes",
     url: "",
@@ -81,7 +80,6 @@ export function CourseDetailPage() {
     null
   );
   const [contribEditForm, setContribEditForm] = useState<ContributionUpdatePayload>({
-    author_name: "",
     title: "",
     type: "notes",
     url: "",
@@ -91,11 +89,9 @@ export function CourseDetailPage() {
   const [inspectedContribution, setInspectedContribution] =
     useState<Contribution | null>(null);
 
-  // Request Create / Edit / Inspect Modals
   const [isRequestCreateOpen, setIsRequestCreateOpen] = useState<boolean>(false);
   const [requestCreateForm, setRequestCreateForm] =
     useState<MaterialRequestCreatePayload>({
-      author_name: "",
       title: "",
       description: "",
     });
@@ -103,7 +99,6 @@ export function CourseDetailPage() {
   const [editingRequest, setEditingRequest] = useState<MaterialRequest | null>(null);
   const [requestEditForm, setRequestEditForm] =
     useState<MaterialRequestUpdatePayload>({
-      author_name: "",
       title: "",
       description: "",
     });
@@ -144,23 +139,27 @@ export function CourseDetailPage() {
   const loadContributions = useCallback(async () => {
     if (!courseId) return;
     try {
-      const [approvedRes, pendingRes] = await Promise.all([
-        contributionsApi.listApprovedByCourse(courseId, {
-          type: contribTypeFilter,
-          limit: 100,
-        }),
-        contributionsApi.listAll({
-          course_id: courseId,
+      const approvedRes = await contributionsApi.listApprovedByCourse(courseId, {
+        type: contribTypeFilter,
+        limit: 100,
+      });
+      setApprovedContributions(approvedRes.items);
+
+      if (isAuthenticated) {
+        const myPending = await meApi.listContributions({
           status: "pending",
           limit: 100,
-        }),
-      ]);
-      setApprovedContributions(approvedRes.items);
-      setPendingContributions(pendingRes.items);
+        });
+        setMyPendingInCourse(
+          myPending.items.filter((item) => item.course_id === courseId)
+        );
+      } else {
+        setMyPendingInCourse([]);
+      }
     } catch (err) {
       showToast(extractErrorMessage(err), "error");
     }
-  }, [courseId, contribTypeFilter, showToast]);
+  }, [courseId, contribTypeFilter, isAuthenticated, showToast]);
 
   const loadRequests = useCallback(async () => {
     if (!courseId) return;
@@ -191,7 +190,16 @@ export function CourseDetailPage() {
     void loadRequests();
   }, [loadRequests]);
 
-  // Contribution Handlers
+  const canModifyContribution = (item: Contribution): boolean => {
+    if (!user) return false;
+    return isAdmin || item.author_id === user.id;
+  };
+
+  const canModifyRequest = (req: MaterialRequest): boolean => {
+    if (!user) return false;
+    return isAdmin || req.author_id === user.id;
+  };
+
   const handleCreateContribution = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
@@ -200,7 +208,6 @@ export function CourseDetailPage() {
       showToast("Contribution submitted as pending review!", "success");
       setIsContribCreateOpen(false);
       setContribCreateForm({
-        author_name: "",
         title: "",
         type: "notes",
         url: "",
@@ -218,7 +225,6 @@ export function CourseDetailPage() {
   const openEditContribution = (item: Contribution) => {
     setEditingContribution(item);
     setContribEditForm({
-      author_name: item.author_name,
       title: item.title,
       type: item.type,
       url: item.url,
@@ -261,7 +267,6 @@ export function CourseDetailPage() {
     }
   };
 
-  // Request Handlers
   const handleCreateRequest = async (event: FormEvent) => {
     event.preventDefault();
     setSubmitting(true);
@@ -269,7 +274,7 @@ export function CourseDetailPage() {
       await requestsApi.create(courseId, requestCreateForm);
       showToast("Material request posted!", "success");
       setIsRequestCreateOpen(false);
-      setRequestCreateForm({ author_name: "", title: "", description: "" });
+      setRequestCreateForm({ title: "", description: "" });
       setActiveTab("requests");
       await loadRequests();
     } catch (err) {
@@ -282,7 +287,6 @@ export function CourseDetailPage() {
   const openEditRequest = (req: MaterialRequest) => {
     setEditingRequest(req);
     setRequestEditForm({
-      author_name: req.author_name,
       title: req.title,
       description: req.description ?? "",
     });
@@ -358,7 +362,6 @@ export function CourseDetailPage() {
         </Link>
       </div>
 
-      {/* Course Header */}
       <section className="hero-banner">
         <div
           style={{
@@ -395,25 +398,32 @@ export function CourseDetailPage() {
           </div>
 
           <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setIsContribCreateOpen(true)}
-            >
-              <UploadCloud size={16} /> Contribute Link
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => setIsRequestCreateOpen(true)}
-            >
-              <PlusCircle size={16} /> Request Material
-            </button>
+            {isAuthenticated ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setIsContribCreateOpen(true)}
+                >
+                  <UploadCloud size={16} /> Contribute Link
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setIsRequestCreateOpen(true)}
+                >
+                  <PlusCircle size={16} /> Request Material
+                </button>
+              </>
+            ) : (
+              <Link to="/login" className="btn btn-primary">
+                <LogIn size={16} /> Sign In to Contribute or Request
+              </Link>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Tabs Navigation */}
       <div className="tabs-bar" role="tablist">
         <button
           type="button"
@@ -437,9 +447,9 @@ export function CourseDetailPage() {
           <UploadCloud size={16} />
           Student Contributions
           <span className="badge badge-success">{approvedContributions.length}</span>
-          {pendingContributions.length > 0 && (
+          {myPendingInCourse.length > 0 && (
             <span className="badge badge-warning">
-              {pendingContributions.length} pending
+              {myPendingInCourse.length} my pending
             </span>
           )}
         </button>
@@ -483,23 +493,27 @@ export function CourseDetailPage() {
               ))}
             </div>
 
-            <Link
-              to={`/admin/materials?courseId=${course.id}`}
-              className="btn btn-secondary btn-sm"
-            >
-              Manage Core Materials
-            </Link>
+            {isAdmin && (
+              <Link
+                to={`/admin/materials?courseId=${course.id}`}
+                className="btn btn-secondary btn-sm"
+              >
+                Manage Core Materials
+              </Link>
+            )}
           </div>
 
           {materials.length === 0 ? (
             <div className="empty-state">
               <p>No core materials found for this filter.</p>
-              <Link
-                to={`/admin/materials?courseId=${course.id}`}
-                className="btn btn-primary btn-sm"
-              >
-                + Add Core Material
-              </Link>
+              {isAdmin && (
+                <Link
+                  to={`/admin/materials?courseId=${course.id}`}
+                  className="btn btn-primary btn-sm"
+                >
+                  + Add Core Material
+                </Link>
+              )}
             </div>
           ) : (
             <div className="cards-grid">
@@ -588,28 +602,24 @@ export function CourseDetailPage() {
               ))}
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => setIsContribCreateOpen(true)}
-            >
-              <UploadCloud size={15} /> Submit Contribution
-            </button>
-          </div>
-
-          {approvedContributions.length === 0 ? (
-            <div className="empty-state">
-              <p>
-                No approved student contributions match this filter yet. Submit a
-                resource link or approve pending submissions in Moderation!
-              </p>
+            {isAuthenticated ? (
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => setIsContribCreateOpen(true)}
               >
-                <UploadCloud size={15} /> Contribute Resource Link
+                <UploadCloud size={15} /> Submit Contribution
               </button>
+            ) : (
+              <Link to="/login" className="btn btn-secondary btn-sm">
+                <LogIn size={14} /> Login to Contribute
+              </Link>
+            )}
+          </div>
+
+          {approvedContributions.length === 0 ? (
+            <div className="empty-state">
+              <p>No approved student contributions match this filter yet.</p>
             </div>
           ) : (
             <div className="cards-grid">
@@ -672,17 +682,18 @@ export function CourseDetailPage() {
                         type="button"
                         className="btn btn-secondary btn-sm"
                         onClick={() => void handleInspectContribution(item.id)}
-                        title="Read Single Contribution via GET /api/v1/contributions/{id}"
                       >
                         <Eye size={13} /> View
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm"
-                        onClick={() => void handleDeleteContribution(item)}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {canModifyContribution(item) && (
+                        <button
+                          type="button"
+                          className="btn btn-danger btn-sm"
+                          onClick={() => void handleDeleteContribution(item)}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
 
                     <a
@@ -699,8 +710,7 @@ export function CourseDetailPage() {
             </div>
           )}
 
-          {/* Pending Contributions Panel (Editable while pending per FR-13) */}
-          {pendingContributions.length > 0 && (
+          {myPendingInCourse.length > 0 && (
             <div style={{ marginTop: "2.25rem" }}>
               <div
                 style={{
@@ -714,7 +724,7 @@ export function CourseDetailPage() {
               >
                 <div>
                   <h3 style={{ margin: 0, fontSize: "1.1rem" }}>
-                    Pending Submissions for {course.code}
+                    Your Pending Submissions for {course.code}
                   </h3>
                   <p
                     style={{
@@ -723,12 +733,11 @@ export function CourseDetailPage() {
                       color: "var(--text-secondary)",
                     }}
                   >
-                    Pending contributions can be edited before admin approval (FR-13)
-                    or reviewed in the Moderation Queue.
+                    You can edit or delete your pending submissions before an admin reviews them.
                   </p>
                 </div>
-                <Link to="/admin/moderation" className="btn btn-secondary btn-sm">
-                  Go to Moderation Queue
+                <Link to="/dashboard" className="btn btn-secondary btn-sm">
+                  View All on My Dashboard
                 </Link>
               </div>
 
@@ -737,14 +746,13 @@ export function CourseDetailPage() {
                   <thead>
                     <tr>
                       <th>Title</th>
-                      <th>Contributor</th>
                       <th>Type</th>
                       <th>Status</th>
-                      <th style={{ textAlign: "right" }}>Actions (Edit Pending / Delete)</th>
+                      <th style={{ textAlign: "right" }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {pendingContributions.map((item) => (
+                    {myPendingInCourse.map((item) => (
                       <tr key={item.id}>
                         <td>
                           <div style={{ fontWeight: 700 }}>{item.title}</div>
@@ -759,7 +767,6 @@ export function CourseDetailPage() {
                             </div>
                           )}
                         </td>
-                        <td>{item.author_name}</td>
                         <td>
                           <MaterialTypeBadge type={item.type} />
                         </td>
@@ -774,13 +781,6 @@ export function CourseDetailPage() {
                               gap: "0.45rem",
                             }}
                           >
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              onClick={() => void handleInspectContribution(item.id)}
-                            >
-                              <Eye size={13} /> View
-                            </button>
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
@@ -839,25 +839,24 @@ export function CourseDetailPage() {
               </button>
             </div>
 
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => setIsRequestCreateOpen(true)}
-            >
-              <PlusCircle size={15} /> Post Request
-            </button>
-          </div>
-
-          {requests.length === 0 ? (
-            <div className="empty-state">
-              <p>No material requests found for this course and filter.</p>
+            {isAuthenticated ? (
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => setIsRequestCreateOpen(true)}
               >
-                <PlusCircle size={15} /> Post First Request
+                <PlusCircle size={15} /> Post Request
               </button>
+            ) : (
+              <Link to="/login" className="btn btn-secondary btn-sm">
+                <LogIn size={14} /> Login to Request
+              </Link>
+            )}
+          </div>
+
+          {requests.length === 0 ? (
+            <div className="empty-state">
+              <p>No material requests found for this course and filter.</p>
             </div>
           ) : (
             <div className="cards-grid">
@@ -912,27 +911,30 @@ export function CourseDetailPage() {
                         type="button"
                         className="btn btn-secondary btn-sm"
                         onClick={() => void handleInspectRequest(req.id)}
-                        title="Read Single Request via GET /api/v1/requests/{id}"
                       >
                         <Eye size={13} /> View
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => openEditRequest(req)}
-                      >
-                        <Edit3 size={13} /> Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm"
-                        onClick={() => void handleDeleteRequest(req)}
-                      >
-                        <Trash2 size={13} />
-                      </button>
+                      {canModifyRequest(req) && (
+                        <>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => openEditRequest(req)}
+                          >
+                            <Edit3 size={13} /> Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            onClick={() => void handleDeleteRequest(req)}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </>
+                      )}
                     </div>
 
-                    {req.status === "open" && (
+                    {req.status === "open" && canModifyRequest(req) && (
                       <button
                         type="button"
                         className="btn btn-success btn-sm"
@@ -956,25 +958,6 @@ export function CourseDetailPage() {
         onClose={() => setIsContribCreateOpen(false)}
       >
         <form onSubmit={handleCreateContribution}>
-          <div className="form-group">
-            <label className="form-label">Your Name *</label>
-            <input
-              type="text"
-              className="form-input"
-              required
-              minLength={2}
-              maxLength={100}
-              placeholder="e.g. Tanjil Hasan Emon"
-              value={contribCreateForm.author_name}
-              onChange={(e) =>
-                setContribCreateForm({
-                  ...contribCreateForm,
-                  author_name: e.target.value,
-                })
-              }
-            />
-          </div>
-
           <div className="form-group">
             <label className="form-label">Resource Title *</label>
             <input
@@ -1074,24 +1057,6 @@ export function CourseDetailPage() {
         onClose={() => setEditingContribution(null)}
       >
         <form onSubmit={handleUpdateContribution}>
-          <div className="form-group">
-            <label className="form-label">Author Name *</label>
-            <input
-              type="text"
-              className="form-input"
-              required
-              minLength={2}
-              maxLength={100}
-              value={contribEditForm.author_name ?? ""}
-              onChange={(e) =>
-                setContribEditForm({
-                  ...contribEditForm,
-                  author_name: e.target.value,
-                })
-              }
-            />
-          </div>
-
           <div className="form-group">
             <label className="form-label">Resource Title *</label>
             <input
@@ -1226,25 +1191,6 @@ export function CourseDetailPage() {
       >
         <form onSubmit={handleCreateRequest}>
           <div className="form-group">
-            <label className="form-label">Your Name *</label>
-            <input
-              type="text"
-              className="form-input"
-              required
-              minLength={2}
-              maxLength={100}
-              placeholder="e.g. Tanjil Hasan Emon"
-              value={requestCreateForm.author_name}
-              onChange={(e) =>
-                setRequestCreateForm({
-                  ...requestCreateForm,
-                  author_name: e.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="form-group">
             <label className="form-label">What material are you looking for? (5–200 chars) *</label>
             <input
               type="text"
@@ -1312,24 +1258,6 @@ export function CourseDetailPage() {
         onClose={() => setEditingRequest(null)}
       >
         <form onSubmit={handleUpdateRequest}>
-          <div className="form-group">
-            <label className="form-label">Requester Name *</label>
-            <input
-              type="text"
-              className="form-input"
-              required
-              minLength={2}
-              maxLength={100}
-              value={requestEditForm.author_name ?? ""}
-              onChange={(e) =>
-                setRequestEditForm({
-                  ...requestEditForm,
-                  author_name: e.target.value,
-                })
-              }
-            />
-          </div>
-
           <div className="form-group">
             <label className="form-label">Request Title (5–200 chars) *</label>
             <input
