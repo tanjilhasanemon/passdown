@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import axios from "axios";
 import {
   BookMarked,
@@ -8,13 +8,19 @@ import {
   ExternalLink,
   FolderKanban,
   GraduationCap,
+  LayoutDashboard,
+  LogIn,
+  LogOut,
   Moon,
   ShieldCheck,
   Sun,
+  UserPlus,
 } from "lucide-react";
 import { contributionsApi } from "../api/contributions";
+import { useAuth } from "../auth/AuthContext";
 
 export function Layout({ children }: { children: ReactNode }) {
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     const saved = window.localStorage.getItem("passdown-theme");
     return saved === "light" ? "light" : "dark";
@@ -33,19 +39,26 @@ export function Layout({ children }: { children: ReactNode }) {
       try {
         await axios.get("/api/health");
         if (active) setApiOnline(true);
-        const pending = await contributionsApi.listAll({ status: "pending", limit: 1 });
-        if (active) setPendingCount(pending.total);
+        if (isAdmin) {
+          const pending = await contributionsApi.listAll({
+            status: "pending",
+            limit: 1,
+          });
+          if (active) setPendingCount(pending.total);
+        } else if (active) {
+          setPendingCount(0);
+        }
       } catch {
         if (active) setApiOnline(false);
       }
     };
-    checkStatus();
-    const timer = window.setInterval(checkStatus, 8000);
+    void checkStatus();
+    const timer = window.setInterval(checkStatus, 10000);
     return () => {
       active = false;
       window.clearInterval(timer);
     };
-  }, []);
+  }, [isAdmin]);
 
   return (
     <div>
@@ -70,32 +83,51 @@ export function Layout({ children }: { children: ReactNode }) {
               <Compass size={16} />
               Explore Courses
             </NavLink>
-            <NavLink
-              to="/admin/courses"
-              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-            >
-              <FolderKanban size={16} />
-              Manage Courses
-            </NavLink>
-            <NavLink
-              to="/admin/materials"
-              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-            >
-              <BookMarked size={16} />
-              Core Materials
-            </NavLink>
-            <NavLink
-              to="/admin/moderation"
-              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-            >
-              <ShieldCheck size={16} />
-              Moderation
-              {pendingCount > 0 && (
-                <span className="badge badge-warning" style={{ padding: "0.1rem 0.5rem" }}>
-                  {pendingCount}
-                </span>
-              )}
-            </NavLink>
+
+            {isAuthenticated && (
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+              >
+                <LayoutDashboard size={16} />
+                My Dashboard
+              </NavLink>
+            )}
+
+            {isAdmin && (
+              <>
+                <NavLink
+                  to="/admin"
+                  end
+                  className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+                >
+                  <ShieldCheck size={16} />
+                  Admin Hub
+                  {pendingCount > 0 && (
+                    <span
+                      className="badge badge-warning"
+                      style={{ padding: "0.1rem 0.5rem" }}
+                    >
+                      {pendingCount}
+                    </span>
+                  )}
+                </NavLink>
+                <NavLink
+                  to="/admin/courses"
+                  className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+                >
+                  <FolderKanban size={16} />
+                  Courses
+                </NavLink>
+                <NavLink
+                  to="/admin/materials"
+                  className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+                >
+                  <BookMarked size={16} />
+                  Materials
+                </NavLink>
+              </>
+            )}
           </nav>
 
           <div className="nav-actions">
@@ -103,6 +135,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <span className={`status-dot ${apiOnline ? "online" : "offline"}`} />
               {apiOnline ? "API Online" : "API Offline"}
             </span>
+
             <a
               href="/api/docs"
               target="_blank"
@@ -112,6 +145,37 @@ export function Layout({ children }: { children: ReactNode }) {
             >
               API Docs <ExternalLink size={13} />
             </a>
+
+            {isAuthenticated && user ? (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+                <Link
+                  to="/dashboard"
+                  className="badge badge-info"
+                  style={{ padding: "0.38rem 0.75rem", fontSize: "0.78rem" }}
+                  title={`Signed in as ${user.email}`}
+                >
+                  {user.name} ({user.role})
+                </Link>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={logout}
+                  title="Sign out"
+                >
+                  <LogOut size={14} /> Logout
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
+                <Link to="/login" className="btn btn-secondary btn-sm">
+                  <LogIn size={14} /> Login
+                </Link>
+                <Link to="/register" className="btn btn-primary btn-sm">
+                  <UserPlus size={14} /> Register
+                </Link>
+              </div>
+            )}
+
             <button
               type="button"
               className="btn-icon"
