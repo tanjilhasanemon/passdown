@@ -1,11 +1,53 @@
 import axios from "axios";
 
+export const TOKEN_STORAGE_KEY = "passdown_access_token";
+export const AUTH_EXPIRED_EVENT = "passdown:auth-expired";
+
+export function getStoredToken(): string | null {
+  return window.sessionStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
+export function setStoredToken(token: string | null): void {
+  if (token) {
+    window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+  } else {
+    window.sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+  }
+}
+
 export const apiClient = axios.create({
   baseURL: "/api/v1",
   headers: {
     "Content-Type": "application/json",
   },
 });
+
+// Request interceptor: attach Authorization: Bearer <token> (TDD §12.2)
+apiClient.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor: handle 401 by clearing session and notifying AuthContext (FR-44, AC-26)
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      const requestUrl = error.config?.url ?? "";
+      if (!requestUrl.includes("/auth/login")) {
+        const hadToken = Boolean(getStoredToken());
+        setStoredToken(null);
+        if (hadToken) {
+          window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export function extractErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -21,7 +63,10 @@ export function extractErrorMessage(error: unknown): string {
       return data.detail
         .map((err) => {
           const field = err.loc?.[err.loc.length - 1];
-          const cleanMsg = (err.msg ?? "Invalid value").replace(/^Value error,\s*/i, "");
+          const cleanMsg = (err.msg ?? "Invalid value").replace(
+            /^Value error,\s*/i,
+            ""
+          );
           return field ? `${String(field)}: ${cleanMsg}` : cleanMsg;
         })
         .join(" • ");

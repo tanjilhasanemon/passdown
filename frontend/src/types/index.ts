@@ -2,12 +2,78 @@ export type MaterialType = "slides" | "notes" | "past_paper" | "book" | "other";
 export type ContributionStatus = "pending" | "approved" | "rejected";
 export type ModerationStatus = "approved" | "rejected";
 export type RequestStatus = "open" | "fulfilled";
+export type UserRole = "student" | "admin";
+
+export type SecurityScope =
+  | "profile:read"
+  | "profile:write"
+  | "contributions:write"
+  | "requests:write"
+  | "courses:write"
+  | "materials:write"
+  | "contributions:moderate"
+  | "stats:read"
+  | "users:manage";
 
 export interface PaginatedResponse<T> {
   items: T[];
   total: number;
   limit: number;
   offset: number;
+}
+
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+}
+
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+}
+
+export interface UserProfileUpdatePayload {
+  name: string;
+}
+
+export interface UserPasswordUpdatePayload {
+  current_password: string;
+  new_password: string;
+}
+
+export interface ContributionStatusCounts {
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
+export interface RequestStatusCounts {
+  open: number;
+  fulfilled: number;
+}
+
+export interface UserSummary {
+  contributions: ContributionStatusCounts;
+  requests: RequestStatusCounts;
+}
+
+export interface PlatformStats {
+  users: number;
+  courses: number;
+  core_materials: number;
+  contributions: ContributionStatusCounts;
+  requests: RequestStatusCounts;
 }
 
 export interface Course {
@@ -50,6 +116,7 @@ export interface Contribution {
   course_id: number;
   course_code?: string | null;
   course_title?: string | null;
+  author_id?: number | null;
   author_name: string;
   title: string;
   type: MaterialType;
@@ -61,7 +128,7 @@ export interface Contribution {
 }
 
 export interface ContributionCreatePayload {
-  author_name: string;
+  author_name?: string;
   title: string;
   type: MaterialType;
   url: string;
@@ -69,7 +136,7 @@ export interface ContributionCreatePayload {
 }
 
 export interface ContributionUpdatePayload {
-  author_name?: string | null;
+  author_name?: string;
   title: string;
   type: MaterialType;
   url: string;
@@ -79,6 +146,9 @@ export interface ContributionUpdatePayload {
 export interface MaterialRequest {
   id: number;
   course_id: number;
+  course_code?: string | null;
+  course_title?: string | null;
+  author_id?: number | null;
   author_name: string;
   title: string;
   description: string | null;
@@ -88,13 +158,13 @@ export interface MaterialRequest {
 }
 
 export interface MaterialRequestCreatePayload {
-  author_name: string;
+  author_name?: string;
   title: string;
   description?: string | null;
 }
 
 export interface MaterialRequestUpdatePayload {
-  author_name?: string | null;
+  author_name?: string;
   title: string;
   description?: string | null;
 }
