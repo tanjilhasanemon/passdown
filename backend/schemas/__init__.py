@@ -1,3 +1,4 @@
+from schemas.auth import RegisterRequest, TokenResponse
 from schemas.common import (
     ContributionStatus,
     MaterialType,
@@ -25,6 +26,13 @@ from schemas.request import (
     RequestRead,
     RequestUpdate,
 )
+from schemas.user import (
+    UserActiveUpdate,
+    UserPasswordUpdate,
+    UserProfileUpdate,
+    UserRead,
+    UserRole,
+)
 
 __all__ = [
     "MaterialType",
@@ -48,4 +56,11 @@ __all__ = [
     "RequestCreate",
     "RequestUpdate",
     "RequestRead",
+    "RegisterRequest",
+    "TokenResponse",
+    "UserRead",
+    "UserRole",
+    "UserProfileUpdate",
+    "UserPasswordUpdate",
+    "UserActiveUpdate",
 ]
