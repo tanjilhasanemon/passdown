@@ -8,17 +8,20 @@ import {
   Calendar,
   FolderPlus,
   Layers,
+  LogIn,
   Search,
   Sparkles,
   X,
 } from "lucide-react";
 import { coursesApi } from "../api/courses";
 import { extractErrorMessage } from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 import { Modal } from "../components/Modal";
 import { useToast } from "../components/ToastContext";
 import type { Course, CoursePayload } from "../types";
 
 export function CourseListPage() {
+  const { isAuthenticated, isAdmin } = useAuth();
   const { showToast } = useToast();
   const [courses, setCourses] = useState<Course[]>([]);
   const [total, setTotal] = useState<number>(0);
@@ -27,7 +30,6 @@ export function CourseListPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Quick Create Course Modal
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [formData, setFormData] = useState<CoursePayload>({
@@ -94,7 +96,6 @@ export function CourseListPage() {
 
   return (
     <div>
-      {/* Hero Banner */}
       <section className="hero-banner">
         <div
           style={{
@@ -122,21 +123,32 @@ export function CourseListPage() {
           </div>
 
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setIsCreateOpen(true)}
-            >
-              <FolderPlus size={17} /> New Course
-            </button>
-            <Link to="/admin/courses" className="btn btn-secondary">
-              Manage Catalog
-            </Link>
+            {isAdmin ? (
+              <>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setIsCreateOpen(true)}
+                >
+                  <FolderPlus size={17} /> New Course
+                </button>
+                <Link to="/admin/courses" className="btn btn-secondary">
+                  Manage Catalog
+                </Link>
+              </>
+            ) : !isAuthenticated ? (
+              <Link to="/login" className="btn btn-primary">
+                <LogIn size={16} /> Sign In to Contribute
+              </Link>
+            ) : (
+              <Link to="/dashboard" className="btn btn-secondary">
+                My Contributions &amp; Requests
+              </Link>
+            )}
           </div>
         </div>
       </section>
 
-      {/* Stats Strip */}
       <div className="stats-grid">
         <div className="stat-card">
           <div>
@@ -169,7 +181,6 @@ export function CourseListPage() {
         </div>
       </div>
 
-      {/* Search & Filter Toolbar */}
       <div className="toolbar">
         <div className="search-box">
           <Search size={18} />
@@ -215,7 +226,6 @@ export function CourseListPage() {
         </div>
       </div>
 
-      {/* Course Cards Grid */}
       {loading ? (
         <div className="empty-state">Loading courses from API...</div>
       ) : error ? (
@@ -236,16 +246,9 @@ export function CourseListPage() {
           </h3>
           <p style={{ margin: "0 0 1.1rem" }}>
             {searchQuery
-              ? `No courses matched "${searchQuery}". Try a different search term or create a new course.`
-              : "Your course catalog is currently empty. Add your first course to get started."}
+              ? `No courses matched "${searchQuery}". Try a different search term.`
+              : "No courses in the catalog yet."}
           </p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setIsCreateOpen(true)}
-          >
-            <FolderPlus size={16} /> Create First Course
-          </button>
         </div>
       ) : (
         <div className="cards-grid">
@@ -304,12 +307,18 @@ export function CourseListPage() {
                   borderTop: "1px solid var(--border-subtle)",
                 }}
               >
-                <Link
-                  to={`/admin/materials?courseId=${course.id}`}
-                  className="btn btn-secondary btn-sm"
-                >
-                  + Core Material
-                </Link>
+                {isAdmin ? (
+                  <Link
+                    to={`/admin/materials?courseId=${course.id}`}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    + Core Material
+                  </Link>
+                ) : (
+                  <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                    Public Resource Hub
+                  </span>
+                )}
                 <Link
                   to={`/courses/${course.id}`}
                   className="btn btn-primary btn-sm"
@@ -322,7 +331,6 @@ export function CourseListPage() {
         </div>
       )}
 
-      {/* Quick Create Course Modal */}
       <Modal
         isOpen={isCreateOpen}
         title="Create New Course"
