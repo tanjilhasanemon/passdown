@@ -8,8 +8,8 @@
 | **Course** | CSE 309 Web Applications & Internet, Independent University, Bangladesh (IUB) |
 | **Author** | Tanjil Hasan Emon |
 | **ID** | 2331024 |
-| **Version** | 1.0 (Draft) |
-| **Date** | October 2026 |
+| **Version** | 2.0 (Final — v0.2.0) |
+| **Date** | November 2026 |
 | **Related documents** | [SRS: Software Requirements Specification](./02-srs.md) · [TDD: Technical Design Document](./03-tdd.md) |
 
 > Every goal, feature and user story in this document is tagged **MVP** or **Beta**, so it is clear what is shown at each demo.

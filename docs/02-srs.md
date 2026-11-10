@@ -8,8 +8,8 @@
 | **Course** | CSE 309 Web Applications & Internet, Independent University, Bangladesh (IUB) |
 | **Author** | Tanjil Hasan Emon |
 | **ID** | 2331024 |
-| **Version** | 1.0 (Draft) |
-| **Date** | October 2026 |
+| **Version** | 2.0 (Final — v0.2.0) |
+| **Date** | November 2026 |
 | **Related documents** | [PRD: Product Requirements Document](./01-prd.md) · [TDD: Technical Design Document](./03-tdd.md) |
 
 > Every requirement is tagged **MVP** (mid-term demo, runs locally, no login) or **Beta** (final demo, authentication, RBAC, deployment).
