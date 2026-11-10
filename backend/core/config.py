@@ -17,10 +17,22 @@ def _default_sqlite_url() -> str:
 
 class Settings(BaseSettings):
     app_name: str = "PassDown API"
-    app_version: str = "0.1.0"
+    app_version: str = "0.2.0"
     api_v1_prefix: str = "/api/v1"
     database_url: str = _default_sqlite_url()
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    # Beta JWT & Auth Settings (NFR-13, FR-31, FR-41)
+    jwt_secret: str = "passdown-default-jwt-secret-key-minimum-32-characters-2026"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60
+    login_max_attempts: int = 5
+    login_lockout_minutes: int = 15
+
+    # Seed Admin Settings (FR-41)
+    admin_name: str = "PassDown Admin"
+    admin_email: str = "admin@passdown.edu"
+    admin_password: str = "Admin1234"
 
     model_config = SettingsConfigDict(
         env_file=(str(BACKEND_DIR / ".env"), str(ROOT_DIR / ".env")),
@@ -32,7 +44,6 @@ class Settings(BaseSettings):
     def normalized_database_url(self) -> str:
         raw = self.database_url.strip()
 
-        # If a multi-line .env snippet was pasted into Vercel, extract the URL line
         for line in raw.splitlines():
             cleaned = line.strip()
             if not cleaned or cleaned.startswith("#"):
@@ -52,7 +63,6 @@ class Settings(BaseSettings):
         elif raw.startswith("postgresql://") and "+psycopg" not in raw:
             raw = raw.replace("postgresql://", "postgresql+psycopg://", 1)
 
-        # Strip Prisma-only query parameters like ?pgbouncer=true that break psycopg
         if raw.startswith("postgresql"):
             parts = urlsplit(raw)
             filtered_query = [
