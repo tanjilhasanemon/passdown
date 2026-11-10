@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -23,6 +23,8 @@ import type { Course, CoursePayload } from "../types";
 export function CourseListPage() {
   const { isAuthenticated, isAdmin } = useAuth();
   const { showToast } = useToast();
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [total, setTotal] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -38,6 +40,24 @@ export function CourseListPage() {
     department: "CSE",
     semester_offered: "Autumn 2026",
   });
+
+  // Press "/" anywhere (outside inputs) to focus the search bar
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const tag = (event.target as HTMLElement | null)?.tagName;
+      if (
+        event.key === "/" &&
+        tag !== "INPUT" &&
+        tag !== "TEXTAREA" &&
+        tag !== "SELECT"
+      ) {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const fetchCourses = useCallback(async (query: string) => {
     setLoading(true);
@@ -56,7 +76,7 @@ export function CourseListPage() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void fetchCourses(searchQuery);
-    }, 220);
+    }, 200);
     return () => window.clearTimeout(timer);
   }, [searchQuery, fetchCourses]);
 
@@ -108,7 +128,7 @@ export function CourseListPage() {
         >
           <div>
             <span className="hero-eyebrow">
-              <Sparkles size={14} /> IUB Course Preparation Platform
+              <Sparkles size={13} /> IUB Course Resource Directory
             </span>
             <h1 className="hero-title">
               Prepare Ahead.{" "}
@@ -117,12 +137,12 @@ export function CourseListPage() {
               </span>
             </h1>
             <p className="hero-subtitle">
-              Browse curated core materials, student-contributed study links, and
-              open resource requests for every course before the semester begins.
+              One structured hub per course with admin-verified core materials,
+              peer-reviewed student contributions, and community resource requests.
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
             {isAdmin ? (
               <>
                 <button
@@ -130,7 +150,7 @@ export function CourseListPage() {
                   className="btn btn-primary"
                   onClick={() => setIsCreateOpen(true)}
                 >
-                  <FolderPlus size={17} /> New Course
+                  <FolderPlus size={16} /> New Course
                 </button>
                 <Link to="/admin/courses" className="btn btn-secondary">
                   Manage Catalog
@@ -138,7 +158,7 @@ export function CourseListPage() {
               </>
             ) : !isAuthenticated ? (
               <Link to="/login" className="btn btn-primary">
-                <LogIn size={16} /> Sign In to Contribute
+                <LogIn size={15} /> Sign In to Contribute
               </Link>
             ) : (
               <Link to="/dashboard" className="btn btn-secondary">
@@ -152,47 +172,48 @@ export function CourseListPage() {
       <div className="stats-grid">
         <div className="stat-card">
           <div>
-            <div className="stat-label">Catalog Courses</div>
+            <div className="stat-label">Total Catalog Courses</div>
             <div className="stat-value">{total}</div>
           </div>
-          <span className="brand-icon" style={{ width: 42, height: 42 }}>
-            <Layers size={20} />
+          <span className="badge badge-info">
+            <Layers size={14} /> Catalog
           </span>
         </div>
 
         <div className="stat-card">
           <div>
-            <div className="stat-label">Departments Active</div>
+            <div className="stat-label">Active Departments</div>
             <div className="stat-value">{Math.max(departments.length - 1, 0)}</div>
           </div>
-          <span className="brand-icon" style={{ width: 42, height: 42 }}>
-            <Building2 size={20} />
+          <span className="badge badge-neutral">
+            <Building2 size={14} /> Academic
           </span>
         </div>
 
         <div className="stat-card">
           <div>
-            <div className="stat-label">Showing Matches</div>
+            <div className="stat-label">Filtered Results</div>
             <div className="stat-value">{visibleCourses.length}</div>
           </div>
-          <span className="brand-icon" style={{ width: 42, height: 42 }}>
-            <BookMarked size={20} />
+          <span className="badge badge-success">
+            <BookMarked size={14} /> Matching
           </span>
         </div>
       </div>
 
       <div className="toolbar">
         <div className="search-box">
-          <Search size={18} />
+          <Search size={17} className="search-icon" />
           <input
+            ref={searchInputRef}
             type="text"
             className="search-input"
-            placeholder="Search courses by code (e.g. CSE309) or title..."
+            placeholder="Search courses by code (CSE309) or title..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             aria-label="Search courses by code or title"
           />
-          {searchQuery && (
+          {searchQuery ? (
             <button
               type="button"
               onClick={() => setSearchQuery("")}
@@ -200,15 +221,19 @@ export function CourseListPage() {
               aria-label="Clear search"
               style={{
                 position: "absolute",
-                right: "0.55rem",
+                right: "0.5rem",
                 top: "50%",
                 transform: "translateY(-50%)",
-                padding: "0.25rem",
+                padding: "0.22rem",
                 border: "none",
               }}
             >
-              <X size={16} />
+              <X size={15} />
             </button>
+          ) : (
+            <span className="search-kbd" title="Press / to search">
+              /
+            </span>
           )}
         </div>
 
@@ -220,14 +245,14 @@ export function CourseListPage() {
               className={`filter-pill ${selectedDept === dept ? "active" : ""}`}
               onClick={() => setSelectedDept(dept)}
             >
-              {dept === "ALL" ? "All Departments" : dept}
+              {dept === "ALL" ? "All Depts" : dept}
             </button>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <div className="empty-state">Loading courses from API...</div>
+        <div className="empty-state">Loading courses...</div>
       ) : error ? (
         <div className="empty-state" style={{ borderColor: "var(--danger)" }}>
           <p style={{ color: "var(--danger)", fontWeight: 600 }}>{error}</p>
@@ -242,11 +267,11 @@ export function CourseListPage() {
       ) : visibleCourses.length === 0 ? (
         <div className="empty-state">
           <h3 style={{ margin: "0 0 0.4rem", color: "var(--text-primary)" }}>
-            No courses found
+            No matching courses
           </h3>
-          <p style={{ margin: "0 0 1.1rem" }}>
+          <p style={{ margin: 0 }}>
             {searchQuery
-              ? `No courses matched "${searchQuery}". Try a different search term.`
+              ? `No courses matched "${searchQuery}". Try another keyword.`
               : "No courses in the catalog yet."}
           </p>
         </div>
@@ -274,10 +299,11 @@ export function CourseListPage() {
 
                 <h2
                   style={{
-                    margin: "0 0 0.5rem",
-                    fontSize: "1.15rem",
+                    margin: "0 0 0.45rem",
+                    fontSize: "1.1rem",
                     fontWeight: 700,
                     lineHeight: 1.35,
+                    letterSpacing: "-0.015em",
                   }}
                 >
                   {course.title}
@@ -285,15 +311,15 @@ export function CourseListPage() {
 
                 <div
                   style={{
-                    display: "flex",
+                    display: "inline-flex",
                     alignItems: "center",
-                    gap: "0.5rem",
+                    gap: "0.42rem",
                     color: "var(--text-secondary)",
-                    fontSize: "0.84rem",
+                    fontSize: "0.81rem",
                   }}
                 >
-                  <Building2 size={14} />
-                  <span>{course.department || "General Department"}</span>
+                  <Building2 size={13} />
+                  <span>{course.department || "General Studies"}</span>
                 </div>
               </div>
 
@@ -303,7 +329,7 @@ export function CourseListPage() {
                   alignItems: "center",
                   justifyContent: "space-between",
                   gap: "0.6rem",
-                  paddingTop: "0.9rem",
+                  paddingTop: "0.85rem",
                   borderTop: "1px solid var(--border-subtle)",
                 }}
               >
@@ -315,15 +341,15 @@ export function CourseListPage() {
                     + Core Material
                   </Link>
                 ) : (
-                  <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                    Public Resource Hub
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                    Materials · Contributions · Requests
                   </span>
                 )}
                 <Link
                   to={`/courses/${course.id}`}
                   className="btn btn-primary btn-sm"
                 >
-                  Open Hub <ArrowRight size={15} />
+                  Explore <ArrowRight size={14} />
                 </Link>
               </div>
             </article>

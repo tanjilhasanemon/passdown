@@ -61,12 +61,12 @@ export function Layout({ children }: { children: ReactNode }) {
   }, [isAdmin]);
 
   return (
-    <div>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header className="navbar">
         <div className="navbar-inner">
           <NavLink to="/" className="brand">
             <span className="brand-icon">
-              <GraduationCap size={22} />
+              <GraduationCap size={19} />
             </span>
             <div>
               <span>PassDown</span>
@@ -80,8 +80,8 @@ export function Layout({ children }: { children: ReactNode }) {
               end
               className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
             >
-              <Compass size={16} />
-              Explore Courses
+              <Compass size={15} />
+              Catalog
             </NavLink>
 
             {isAuthenticated && (
@@ -89,8 +89,8 @@ export function Layout({ children }: { children: ReactNode }) {
                 to="/dashboard"
                 className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
               >
-                <LayoutDashboard size={16} />
-                My Dashboard
+                <LayoutDashboard size={15} />
+                Dashboard
               </NavLink>
             )}
 
@@ -101,12 +101,12 @@ export function Layout({ children }: { children: ReactNode }) {
                   end
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
-                  <ShieldCheck size={16} />
-                  Admin Hub
+                  <ShieldCheck size={15} />
+                  Admin
                   {pendingCount > 0 && (
                     <span
                       className="badge badge-warning"
-                      style={{ padding: "0.1rem 0.5rem" }}
+                      style={{ padding: "0.06rem 0.44rem", fontSize: "0.68rem" }}
                     >
                       {pendingCount}
                     </span>
@@ -116,14 +116,14 @@ export function Layout({ children }: { children: ReactNode }) {
                   to="/admin/courses"
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
-                  <FolderKanban size={16} />
+                  <FolderKanban size={15} />
                   Courses
                 </NavLink>
                 <NavLink
                   to="/admin/materials"
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
-                  <BookMarked size={16} />
+                  <BookMarked size={15} />
                   Materials
                 </NavLink>
               </>
@@ -133,7 +133,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="nav-actions">
             <span className="api-pill" title="FastAPI /api/health status">
               <span className={`status-dot ${apiOnline ? "online" : "offline"}`} />
-              {apiOnline ? "API Online" : "API Offline"}
+              {apiOnline ? "Operational" : "Offline"}
             </span>
 
             <a
@@ -141,20 +141,20 @@ export function Layout({ children }: { children: ReactNode }) {
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-secondary btn-sm"
-              title="Open FastAPI Swagger Documentation"
+              title="Open FastAPI OpenAPI Documentation"
             >
-              API Docs <ExternalLink size={13} />
+              API <ExternalLink size={12} />
             </a>
 
             {isAuthenticated && user ? (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
                 <Link
                   to="/dashboard"
                   className="badge badge-info"
-                  style={{ padding: "0.38rem 0.75rem", fontSize: "0.78rem" }}
+                  style={{ padding: "0.34rem 0.68rem", fontSize: "0.75rem" }}
                   title={`Signed in as ${user.email}`}
                 >
-                  {user.name} ({user.role})
+                  {user.name} · {user.role}
                 </Link>
                 <button
                   type="button"
@@ -162,16 +162,16 @@ export function Layout({ children }: { children: ReactNode }) {
                   onClick={logout}
                   title="Sign out"
                 >
-                  <LogOut size={14} /> Logout
+                  <LogOut size={13} />
                 </button>
               </div>
             ) : (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
                 <Link to="/login" className="btn btn-secondary btn-sm">
-                  <LogIn size={14} /> Login
+                  <LogIn size={13} /> Sign In
                 </Link>
                 <Link to="/register" className="btn btn-primary btn-sm">
-                  <UserPlus size={14} /> Register
+                  <UserPlus size={13} /> Register
                 </Link>
               </div>
             )}
@@ -183,13 +183,29 @@ export function Layout({ children }: { children: ReactNode }) {
               aria-label="Toggle color theme"
               title="Switch Dark / Light Mode"
             >
-              {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </div>
         </div>
       </header>
 
-      <main className="main-container">{children}</main>
+      <main className="main-container" style={{ flex: 1, width: "100%" }}>
+        {children}
+      </main>
+
+      <footer className="app-footer">
+        <div>
+          <strong>PassDown v0.2.0</strong> · CSE 309 Web Applications &amp; Internet ·
+          Independent University, Bangladesh (IUB)
+        </div>
+        <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <a href="/api/docs" target="_blank" rel="noopener noreferrer">
+            OpenAPI Spec
+          </a>
+          <span>·</span>
+          <span>Built by Tanjil Hasan Emon (2331024)</span>
+        </div>
+      </footer>
     </div>
   );
 }
