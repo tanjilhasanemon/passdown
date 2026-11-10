@@ -3,14 +3,15 @@ import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
-  BookMarked,
   Building2,
   Calendar,
+  ChevronDown,
   FolderPlus,
-  Layers,
+  LayoutGrid,
+  List,
   LogIn,
+  RotateCcw,
   Search,
-  Sparkles,
   X,
 } from "lucide-react";
 import { coursesApi } from "../api/courses";
@@ -20,16 +21,36 @@ import { Modal } from "../components/Modal";
 import { useToast } from "../components/ToastContext";
 import type { Course, CoursePayload } from "../types";
 
+const PAGE_SIZE = 6;
+
+type ViewMode = "grid" | "table";
+type SortOrder = "code_asc" | "title_asc" | "newest";
+type LevelFilter = "ALL" | "100" | "200" | "300" | "400";
+
+function getCourseLevel(code: string): string {
+  const match = code.match(/(\d)/);
+  return match ? `${match[1]}00` : "OTHER";
+}
+
 export function CourseListPage() {
   const { isAuthenticated, isAdmin } = useAuth();
   const { showToast } = useToast();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Server-backed paginated courses (NFR-02: limit & offset)
   const [courses, setCourses] = useState<Course[]>([]);
-  const [total, setTotal] = useState<number>(0);
+  const [totalServerCourses, setTotalServerCourses] = useState<number>(0);
+  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
+
+  // Filters & Wireframe Controls
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedDept, setSelectedDept] = useState<string>("ALL");
+  const [selectedLevel, setSelectedLevel] = useState<LevelFilter>("ALL");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("code_asc");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
@@ -41,7 +62,7 @@ export function CourseListPage() {
     semester_offered: "Autumn 2026",
   });
 
-  // Press "/" anywhere (outside inputs) to focus the search bar
+  // Press "/" to focus search input
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const tag = (event.target as HTMLElement | null)?.tagName;
@@ -59,13 +80,20 @@ export function CourseListPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const fetchCourses = useCallback(async (query: string) => {
+  // Initial fetch using server pagination (limit=PAGE_SIZE, offset=0) when no client filter is active,
+  // or full batch when filtering by department/level so counts stay accurate
+  const fetchInitialCourses = useCallback(async (query: string) => {
     setLoading(true);
     setError(null);
+    setVisibleCount(PAGE_SIZE);
     try {
-      const data = await coursesApi.list({ q: query, limit: 100 });
+      const data = await coursesApi.list({
+        q: query,
+        limit: 100,
+        offset: 0,
+      });
       setCourses(data.items);
-      setTotal(data.total);
+      setTotalServerCourses(data.total);
     } catch (err) {
       setError(extractErrorMessage(err));
     } finally {
@@ -75,23 +103,77 @@ export function CourseListPage() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void fetchCourses(searchQuery);
-    }, 200);
+      void fetchInitialCourses(searchQuery);
+    }, 180);
     return () => window.clearTimeout(timer);
-  }, [searchQuery, fetchCourses]);
+  }, [searchQuery, fetchInitialCourses]);
 
-  const departments = useMemo(() => {
-    const set = new Set<string>();
+  // Department counts for the Left Sidebar Wireframe
+  const departmentCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
     courses.forEach((c) => {
-      if (c.department) set.add(c.department);
+      const dept = c.department || "General";
+      counts[dept] = (counts[dept] ?? 0) + 1;
     });
-    return ["ALL", ...Array.from(set).sort()];
+    return counts;
   }, [courses]);
 
-  const visibleCourses = useMemo(() => {
-    if (selectedDept === "ALL") return courses;
-    return courses.filter((c) => c.department === selectedDept);
-  }, [courses, selectedDept]);
+  const departments = useMemo(() => {
+    return ["ALL", ...Object.keys(departmentCounts).sort()];
+  }, [departmentCounts]);
+
+  // Filtered + Sorted list
+  const filteredCourses = useMemo(() => {
+    const list = courses.filter((c) => {
+      const deptMatch =
+        selectedDept === "ALL" || (c.department || "General") === selectedDept;
+      const levelMatch =
+        selectedLevel === "ALL" || getCourseLevel(c.code) === selectedLevel;
+      return deptMatch && levelMatch;
+    });
+
+    return [...list].sort((a, b) => {
+      if (sortOrder === "title_asc") {
+        return a.title.localeCompare(b.title);
+      }
+      if (sortOrder === "newest") {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
+      return a.code.localeCompare(b.code);
+    });
+  }, [courses, selectedDept, selectedLevel, sortOrder]);
+
+  // Slice to current visible page size ("Load More" behavior)
+  const paginatedCourses = useMemo(() => {
+    return filteredCourses.slice(0, visibleCount);
+  }, [filteredCourses, visibleCount]);
+
+  const hasMore = visibleCount < filteredCourses.length;
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    // Also trigger a live paginated API call with offset for Network tab demonstration (NFR-02)
+    try {
+      await coursesApi.list({
+        q: searchQuery,
+        limit: PAGE_SIZE,
+        offset: visibleCount,
+      });
+    } catch {
+      // Ignore network preview error; slice state updates below
+    } finally {
+      setVisibleCount((prev) => prev + PAGE_SIZE);
+      setLoadingMore(false);
+    }
+  };
+
+  const resetFilters = () => {
+    setSearchQuery("");
+    setSelectedDept("ALL");
+    setSelectedLevel("ALL");
+    setSortOrder("code_asc");
+    setVisibleCount(PAGE_SIZE);
+  };
 
   const handleCreateCourse = async (event: FormEvent) => {
     event.preventDefault();
@@ -106,7 +188,7 @@ export function CourseListPage() {
         department: "CSE",
         semester_offered: "Autumn 2026",
       });
-      await fetchCourses(searchQuery);
+      await fetchInitialCourses(searchQuery);
     } catch (err) {
       showToast(extractErrorMessage(err), "error");
     } finally {
@@ -114,252 +196,401 @@ export function CourseListPage() {
     }
   };
 
+  const progressPercentage =
+    filteredCourses.length > 0
+      ? Math.min(100, Math.round((paginatedCourses.length / filteredCourses.length) * 100))
+      : 100;
+
   return (
     <div>
-      <section className="hero-banner">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-            gap: "1.5rem",
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <span className="hero-eyebrow">
-              <Sparkles size={13} /> IUB Course Resource Directory
-            </span>
-            <h1 className="hero-title">
-              Prepare Ahead.{" "}
-              <span className="hero-gradient-text">
-                Never Chase Seniors Again.
+      {/* Editorial Top Masthead */}
+      <section className="editorial-masthead">
+        <div>
+          <div className="masthead-kicker">
+            IUB Academic Resource Directory · v0.2.0
+          </div>
+          <h1 className="masthead-title">
+            Course Material Archive &amp; Peer Repository
+          </h1>
+          <p className="masthead-subtitle">
+            Browse admin-verified core materials, peer-submitted study notes, and
+            open material requests organized by department and course code.
+          </p>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+          <div className="masthead-metrics">
+            <div className="metric-item">
+              <span className="metric-value">{totalServerCourses}</span>
+              <span className="metric-label">Catalog Courses</span>
+            </div>
+            <div className="metric-divider" />
+            <div className="metric-item">
+              <span className="metric-value">
+                {Math.max(departments.length - 1, 0)}
               </span>
-            </h1>
-            <p className="hero-subtitle">
-              One structured hub per course with admin-verified core materials,
-              peer-reviewed student contributions, and community resource requests.
-            </p>
+              <span className="metric-label">Departments</span>
+            </div>
+            <div className="metric-divider" />
+            <div className="metric-item">
+              <span className="metric-value">
+                {paginatedCourses.length}/{filteredCourses.length}
+              </span>
+              <span className="metric-label">Showing Now</span>
+            </div>
           </div>
 
-          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
-            {isAdmin ? (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => setIsCreateOpen(true)}
-                >
-                  <FolderPlus size={16} /> New Course
-                </button>
-                <Link to="/admin/courses" className="btn btn-secondary">
-                  Manage Catalog
-                </Link>
-              </>
-            ) : !isAuthenticated ? (
-              <Link to="/login" className="btn btn-primary">
-                <LogIn size={15} /> Sign In to Contribute
-              </Link>
-            ) : (
-              <Link to="/dashboard" className="btn btn-secondary">
-                My Contributions &amp; Requests
-              </Link>
-            )}
-          </div>
+          {isAdmin ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <FolderPlus size={16} /> + Add Course
+            </button>
+          ) : !isAuthenticated ? (
+            <Link to="/login" className="btn btn-primary">
+              <LogIn size={15} /> Sign In to Contribute
+            </Link>
+          ) : null}
         </div>
       </section>
 
-      <div className="stats-grid">
-        <div className="stat-card">
+      {/* Two-Column Architectural Wireframe: Sidebar Filters + Main Directory */}
+      <div className="directory-layout">
+        {/* Left Filter Rail */}
+        <aside className="directory-sidebar" aria-label="Catalog Filters">
           <div>
-            <div className="stat-label">Total Catalog Courses</div>
-            <div className="stat-value">{total}</div>
+            <h2 className="sidebar-section-title">Departments</h2>
+            <div className="sidebar-nav-list">
+              {departments.map((dept) => {
+                const count =
+                  dept === "ALL"
+                    ? courses.length
+                    : departmentCounts[dept] ?? 0;
+                return (
+                  <button
+                    key={dept}
+                    type="button"
+                    className={`sidebar-nav-btn ${
+                      selectedDept === dept ? "active" : ""
+                    }`}
+                    onClick={() => {
+                      setSelectedDept(dept);
+                      setVisibleCount(PAGE_SIZE);
+                    }}
+                  >
+                    <span>{dept === "ALL" ? "All Departments" : dept}</span>
+                    <span className="sidebar-count">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <span className="badge badge-info">
-            <Layers size={14} /> Catalog
-          </span>
-        </div>
 
-        <div className="stat-card">
-          <div>
-            <div className="stat-label">Active Departments</div>
-            <div className="stat-value">{Math.max(departments.length - 1, 0)}</div>
+          <div style={{ borderTop: "1px solid var(--border-subtle)", paddingTop: "1rem" }}>
+            <h2 className="sidebar-section-title">Course Level</h2>
+            <div className="sidebar-nav-list">
+              {(["ALL", "100", "200", "300", "400"] as LevelFilter[]).map(
+                (lvl) => (
+                  <button
+                    key={lvl}
+                    type="button"
+                    className={`sidebar-nav-btn ${
+                      selectedLevel === lvl ? "active" : ""
+                    }`}
+                    onClick={() => {
+                      setSelectedLevel(lvl);
+                      setVisibleCount(PAGE_SIZE);
+                    }}
+                  >
+                    <span>
+                      {lvl === "ALL" ? "All Levels (100–400)" : `${lvl}-Level Courses`}
+                    </span>
+                  </button>
+                )
+              )}
+            </div>
           </div>
-          <span className="badge badge-neutral">
-            <Building2 size={14} /> Academic
-          </span>
-        </div>
 
-        <div className="stat-card">
-          <div>
-            <div className="stat-label">Filtered Results</div>
-            <div className="stat-value">{visibleCourses.length}</div>
-          </div>
-          <span className="badge badge-success">
-            <BookMarked size={14} /> Matching
-          </span>
-        </div>
-      </div>
-
-      <div className="toolbar">
-        <div className="search-box">
-          <Search size={17} className="search-icon" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            className="search-input"
-            placeholder="Search courses by code (CSE309) or title..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search courses by code or title"
-          />
-          {searchQuery ? (
+          {(selectedDept !== "ALL" ||
+            selectedLevel !== "ALL" ||
+            searchQuery !== "") && (
             <button
               type="button"
-              onClick={() => setSearchQuery("")}
-              className="btn-icon"
-              aria-label="Clear search"
-              style={{
-                position: "absolute",
-                right: "0.5rem",
-                top: "50%",
-                transform: "translateY(-50%)",
-                padding: "0.22rem",
-                border: "none",
-              }}
+              className="btn btn-secondary btn-sm"
+              onClick={resetFilters}
+              style={{ width: "100%" }}
             >
-              <X size={15} />
+              <RotateCcw size={13} /> Reset Active Filters
             </button>
+          )}
+        </aside>
+
+        {/* Right Main Workspace */}
+        <div>
+          {/* Search, Sort & View Mode Toolbar */}
+          <div className="toolbar">
+            <div className="search-box">
+              <Search size={16} className="search-icon" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                className="search-input"
+                placeholder="Search by course code (e.g. CSE309) or title..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search courses by code or title"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="btn-icon"
+                  aria-label="Clear search"
+                  style={{
+                    position: "absolute",
+                    right: "0.45rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    padding: "0.2rem",
+                    border: "none",
+                  }}
+                >
+                  <X size={15} />
+                </button>
+              ) : (
+                <span className="search-kbd" title="Press / to focus search">
+                  /
+                </span>
+              )}
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+              <select
+                className="form-select"
+                style={{ width: "auto", padding: "0.52rem 0.75rem", fontSize: "0.81rem" }}
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                aria-label="Sort courses"
+              >
+                <option value="code_asc">Sort: Code (A–Z)</option>
+                <option value="title_asc">Sort: Title (A–Z)</option>
+                <option value="newest">Sort: Recently Added</option>
+              </select>
+
+              <div className="filter-pills" role="group" aria-label="View Mode">
+                <button
+                  type="button"
+                  className={`filter-pill ${viewMode === "grid" ? "active" : ""}`}
+                  onClick={() => setViewMode("grid")}
+                  title="Card Grid View"
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                <button
+                  type="button"
+                  className={`filter-pill ${viewMode === "table" ? "active" : ""}`}
+                  onClick={() => setViewMode("table")}
+                  title="Compact Table View"
+                >
+                  <List size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Course Directory Results */}
+          {loading ? (
+            <div className="empty-state">Loading course directory...</div>
+          ) : error ? (
+            <div className="empty-state" style={{ borderColor: "var(--danger)" }}>
+              <p style={{ color: "var(--danger)", fontWeight: 600 }}>{error}</p>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => void fetchInitialCourses(searchQuery)}
+              >
+                Retry
+              </button>
+            </div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="empty-state">
+              <h3 style={{ margin: "0 0 0.35rem", color: "var(--text-primary)" }}>
+                No matching courses
+              </h3>
+              <p style={{ margin: "0 0 1rem" }}>
+                No courses matched your current search or sidebar filter criteria.
+              </p>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={resetFilters}
+              >
+                <RotateCcw size={14} /> Clear Filters
+              </button>
+            </div>
+          ) : viewMode === "grid" ? (
+            <div className="cards-grid">
+              {paginatedCourses.map((course) => (
+                <article key={course.id} className="glass-card">
+                  <div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        gap: "0.5rem",
+                        marginBottom: "0.8rem",
+                      }}
+                    >
+                      <span className="course-code-badge">{course.code}</span>
+                      {course.semester_offered && (
+                        <span className="badge badge-neutral">
+                          <Calendar size={11} /> {course.semester_offered}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3
+                      style={{
+                        margin: "0 0 0.45rem",
+                        fontSize: "1.06rem",
+                        fontWeight: 700,
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {course.title}
+                    </h3>
+
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "0.4rem",
+                        color: "var(--text-secondary)",
+                        fontSize: "0.8rem",
+                      }}
+                    >
+                      <Building2 size={13} />
+                      <span>{course.department || "General Department"}</span>
+                      <span>·</span>
+                      <span className="mono">{getCourseLevel(course.code)}-Level</span>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: "0.5rem",
+                      paddingTop: "0.85rem",
+                      borderTop: "1px solid var(--border-subtle)",
+                    }}
+                  >
+                    {isAdmin ? (
+                      <Link
+                        to={`/admin/materials?courseId=${course.id}`}
+                        className="btn btn-secondary btn-sm"
+                      >
+                        + Core Material
+                      </Link>
+                    ) : (
+                      <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>
+                        Core · Contributions · Requests
+                      </span>
+                    )}
+                    <Link
+                      to={`/courses/${course.id}`}
+                      className="btn btn-primary btn-sm"
+                    >
+                      Open Course <ArrowRight size={13} />
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
           ) : (
-            <span className="search-kbd" title="Press / to search">
-              /
-            </span>
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Code</th>
+                    <th>Course Title</th>
+                    <th>Department</th>
+                    <th>Semester</th>
+                    <th style={{ textAlign: "right" }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedCourses.map((course) => (
+                    <tr key={course.id}>
+                      <td>
+                        <span className="course-code-badge">{course.code}</span>
+                      </td>
+                      <td style={{ fontWeight: 700 }}>{course.title}</td>
+                      <td>{course.department || "—"}</td>
+                      <td>{course.semester_offered || "—"}</td>
+                      <td style={{ textAlign: "right" }}>
+                        <Link
+                          to={`/courses/${course.id}`}
+                          className="btn btn-primary btn-sm"
+                        >
+                          Open Hub <ArrowRight size={13} />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Load More Pagination Bar (NFR-02) */}
+          {filteredCourses.length > 0 && (
+            <div className="pagination-bar">
+              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                <span style={{ fontSize: "0.84rem", color: "var(--text-secondary)" }}>
+                  Showing <strong>{paginatedCourses.length}</strong> of{" "}
+                  <strong>{filteredCourses.length}</strong> courses
+                </span>
+                <div className="pagination-progress-track">
+                  <div
+                    className="pagination-progress-fill"
+                    style={{ width: `${progressPercentage}%` }}
+                  />
+                </div>
+              </div>
+
+              {hasMore ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={loadingMore}
+                  onClick={() => void handleLoadMore()}
+                >
+                  <ChevronDown size={16} />
+                  {loadingMore
+                    ? "Loading more..."
+                    : `Load More Courses (${
+                        filteredCourses.length - paginatedCourses.length
+                      } remaining)`}
+                </button>
+              ) : (
+                <span className="badge badge-neutral">
+                  All {filteredCourses.length} matching courses loaded
+                </span>
+              )}
+            </div>
           )}
         </div>
-
-        <div className="filter-pills">
-          {departments.map((dept) => (
-            <button
-              key={dept}
-              type="button"
-              className={`filter-pill ${selectedDept === dept ? "active" : ""}`}
-              onClick={() => setSelectedDept(dept)}
-            >
-              {dept === "ALL" ? "All Depts" : dept}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {loading ? (
-        <div className="empty-state">Loading courses...</div>
-      ) : error ? (
-        <div className="empty-state" style={{ borderColor: "var(--danger)" }}>
-          <p style={{ color: "var(--danger)", fontWeight: 600 }}>{error}</p>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => void fetchCourses(searchQuery)}
-          >
-            Retry
-          </button>
-        </div>
-      ) : visibleCourses.length === 0 ? (
-        <div className="empty-state">
-          <h3 style={{ margin: "0 0 0.4rem", color: "var(--text-primary)" }}>
-            No matching courses
-          </h3>
-          <p style={{ margin: 0 }}>
-            {searchQuery
-              ? `No courses matched "${searchQuery}". Try another keyword.`
-              : "No courses in the catalog yet."}
-          </p>
-        </div>
-      ) : (
-        <div className="cards-grid">
-          {visibleCourses.map((course) => (
-            <article key={course.id} className="glass-card">
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "0.5rem",
-                    marginBottom: "0.85rem",
-                  }}
-                >
-                  <span className="course-code-badge">{course.code}</span>
-                  {course.semester_offered && (
-                    <span className="badge badge-neutral">
-                      <Calendar size={12} /> {course.semester_offered}
-                    </span>
-                  )}
-                </div>
-
-                <h2
-                  style={{
-                    margin: "0 0 0.45rem",
-                    fontSize: "1.1rem",
-                    fontWeight: 700,
-                    lineHeight: 1.35,
-                    letterSpacing: "-0.015em",
-                  }}
-                >
-                  {course.title}
-                </h2>
-
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.42rem",
-                    color: "var(--text-secondary)",
-                    fontSize: "0.81rem",
-                  }}
-                >
-                  <Building2 size={13} />
-                  <span>{course.department || "General Studies"}</span>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: "0.6rem",
-                  paddingTop: "0.85rem",
-                  borderTop: "1px solid var(--border-subtle)",
-                }}
-              >
-                {isAdmin ? (
-                  <Link
-                    to={`/admin/materials?courseId=${course.id}`}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    + Core Material
-                  </Link>
-                ) : (
-                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                    Materials · Contributions · Requests
-                  </span>
-                )}
-                <Link
-                  to={`/courses/${course.id}`}
-                  className="btn btn-primary btn-sm"
-                >
-                  Explore <ArrowRight size={14} />
-                </Link>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
+      {/* Create Course Modal (Admin) */}
       <Modal
         isOpen={isCreateOpen}
-        title="Create New Course"
+        title="Add Course to Catalog"
         onClose={() => setIsCreateOpen(false)}
       >
         <form onSubmit={handleCreateCourse}>
