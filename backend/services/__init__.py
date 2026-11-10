@@ -3,6 +3,8 @@ from services.contribution import ContributionService
 from services.core_material import CoreMaterialService
 from services.course import CourseService
 from services.request import RequestService
+from services.stats import StatsService
+from services.user import UserService
 
 __all__ = [
     "AuthService",
@@ -10,4 +12,6 @@ __all__ = [
     "CoreMaterialService",
     "ContributionService",
     "RequestService",
+    "UserService",
+    "StatsService",
 ]
