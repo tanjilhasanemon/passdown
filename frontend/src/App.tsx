@@ -9,6 +9,7 @@ import { AdminMaterialsPage } from "./pages/AdminMaterialsPage";
 import { AdminModerationPage } from "./pages/AdminModerationPage";
 import { CourseDetailPage } from "./pages/CourseDetailPage";
 import { CourseListPage } from "./pages/CourseListPage";
+import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 
@@ -38,10 +39,7 @@ export default function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <PlaceholderSection
-                      title="Student Profile Dashboard"
-                      subtitle="Track your contributions, open requests, and account settings."
-                    />
+                    <DashboardPage />
                   </ProtectedRoute>
                 }
               />
