@@ -5,6 +5,7 @@ import { RoleRoute } from "./auth/RoleRoute";
 import { Layout } from "./components/Layout";
 import { ToastProvider } from "./components/ToastContext";
 import { AdminCoursesPage } from "./pages/AdminCoursesPage";
+import { AdminDashboardPage } from "./pages/AdminDashboardPage";
 import { AdminMaterialsPage } from "./pages/AdminMaterialsPage";
 import { AdminModerationPage } from "./pages/AdminModerationPage";
 import { CourseDetailPage } from "./pages/CourseDetailPage";
@@ -12,16 +13,6 @@ import { CourseListPage } from "./pages/CourseListPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
-
-function PlaceholderSection({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <section className="hero-banner">
-      <span className="hero-eyebrow">PassDown Beta v0.2.0</span>
-      <h1 className="hero-title">{title}</h1>
-      <p className="hero-subtitle">{subtitle}</p>
-    </section>
-  );
-}
 
 export default function App() {
   return (
@@ -48,10 +39,7 @@ export default function App() {
                 path="/admin"
                 element={
                   <RoleRoute allowedRoles={["admin"]}>
-                    <PlaceholderSection
-                      title="Admin Dashboard"
-                      subtitle="Platform statistics, pending moderation queue, and user account management."
-                    />
+                    <AdminDashboardPage />
                   </RoleRoute>
                 }
               />

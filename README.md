@@ -60,12 +60,12 @@ The project ships in two releases.
 - [x] React + TypeScript UI connected to the REST API
 
 **🔵 Beta: Final demo (v0.2.0)**
-- [ ] Registration and login (JWT)
-- [ ] Role-Based Access Control (Admin / Student / Guest)
-- [ ] Security scopes and permissions
-- [ ] Contribution approval workflow (admin-restricted)
-- [ ] User profile and admin dashboards
-- [ ] Production deployment on Vercel with Supabase PostgreSQL
+- [x] Registration and login (JWT)
+- [x] Role-Based Access Control (Admin / Student / Guest)
+- [x] Security scopes and permissions
+- [x] Contribution approval workflow (admin-restricted)
+- [x] User profile and admin dashboards
+- [x] Production deployment on Vercel with Supabase PostgreSQL
 
 ## 👥 Roles
 
