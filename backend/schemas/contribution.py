@@ -12,19 +12,12 @@ from schemas.common import (
 
 
 class ContributionCreate(BaseModel):
-    author_name: str
+    model_config = ConfigDict(extra="ignore")
+
     title: str
     type: MaterialType
     url: str
     description: str | None = None
-
-    @field_validator("author_name")
-    @classmethod
-    def validate_author_name(cls, value: str) -> str:
-        cleaned = value.strip()
-        if len(cleaned) < 2 or len(cleaned) > 100:
-            raise ValueError("Author name must be between 2 and 100 characters")
-        return cleaned
 
     @field_validator("title")
     @classmethod
@@ -46,21 +39,12 @@ class ContributionCreate(BaseModel):
 
 
 class ContributionUpdate(BaseModel):
-    author_name: str | None = None
+    model_config = ConfigDict(extra="ignore")
+
     title: str
     type: MaterialType
     url: str
     description: str | None = None
-
-    @field_validator("author_name")
-    @classmethod
-    def validate_author_name(cls, value: str | None) -> str | None:
-        if value is None:
-            return None
-        cleaned = value.strip()
-        if len(cleaned) < 2 or len(cleaned) > 100:
-            raise ValueError("Author name must be between 2 and 100 characters")
-        return cleaned
 
     @field_validator("title")
     @classmethod
@@ -92,6 +76,7 @@ class ContributionRead(BaseModel):
     course_id: int
     course_code: str | None = None
     course_title: str | None = None
+    author_id: int | None = None
     author_name: str
     title: str
     type: MaterialType
