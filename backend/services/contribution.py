@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from models.app_user import AppUser
 from models.contribution import Contribution
 from repositories.contribution import ContributionRepository
 from schemas.common import PaginatedResponse
@@ -42,6 +43,7 @@ class ContributionService:
         db: Session,
         status_filter: str | None = None,
         course_id: int | None = None,
+        author_id: int | None = None,
         limit: int = 20,
         offset: int = 0,
     ) -> PaginatedResponse[ContributionRead]:
@@ -49,6 +51,7 @@ class ContributionService:
             db,
             status_filter=status_filter,
             course_id=course_id,
+            author_id=author_id,
             limit=limit,
             offset=offset,
         )
@@ -71,16 +74,30 @@ class ContributionService:
 
     @staticmethod
     def create_contribution(
-        db: Session, course_id: int, data: ContributionCreate
+        db: Session,
+        course_id: int,
+        data: ContributionCreate,
+        current_user: AppUser,
     ) -> Contribution:
         CourseService.get_course(db, course_id)
-        return ContributionRepository.create(db, course_id=course_id, data=data)
+        return ContributionRepository.create(
+            db, course_id=course_id, data=data, author=current_user
+        )
 
     @staticmethod
     def update_contribution(
-        db: Session, contribution_id: int, data: ContributionUpdate
+        db: Session,
+        contribution_id: int,
+        data: ContributionUpdate,
+        current_user: AppUser,
     ) -> Contribution:
         contribution = ContributionService.get_contribution(db, contribution_id)
+        # SRS §7: Editing a pending contribution is restricted to its owner
+        if contribution.author_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only edit your own contributions",
+            )
         if contribution.status != "pending":
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -98,6 +115,16 @@ class ContributionService:
         )
 
     @staticmethod
-    def delete_contribution(db: Session, contribution_id: int) -> None:
+    def delete_contribution(
+        db: Session,
+        contribution_id: int,
+        current_user: AppUser,
+    ) -> None:
         contribution = ContributionService.get_contribution(db, contribution_id)
+        # FR-35, AC-21: Owner or Admin may delete a contribution
+        if current_user.role != "admin" and contribution.author_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only delete your own contributions",
+            )
         ContributionRepository.delete(db, contribution=contribution)
