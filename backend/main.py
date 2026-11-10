@@ -10,7 +10,7 @@ if str(BACKEND_DIR) not in sys.path:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.v1 import auth, contributions, core_materials, courses, requests
+from api.v1 import admin, auth, contributions, core_materials, courses, me, requests
 from core.config import settings
 from core.database import init_db
 
@@ -39,6 +39,8 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
+app.include_router(me.router, prefix=settings.api_v1_prefix)
+app.include_router(admin.router, prefix=settings.api_v1_prefix)
 app.include_router(courses.router, prefix=settings.api_v1_prefix)
 app.include_router(core_materials.router, prefix=settings.api_v1_prefix)
 app.include_router(contributions.router, prefix=settings.api_v1_prefix)
