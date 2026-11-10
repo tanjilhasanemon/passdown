@@ -23,7 +23,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     const saved = window.localStorage.getItem("passdown-theme");
-    return saved === "light" ? "light" : "dark";
+    return saved === "dark" ? "dark" : "light";
   });
   const [apiOnline, setApiOnline] = useState<boolean>(true);
   const [pendingCount, setPendingCount] = useState<number>(0);
@@ -66,11 +66,11 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="navbar-inner">
           <NavLink to="/" className="brand">
             <span className="brand-icon">
-              <GraduationCap size={19} />
+              <GraduationCap size={18} />
             </span>
             <div>
               <span>PassDown</span>
-              <span className="brand-subtitle">IUB Course Resource Hub</span>
+              <span className="brand-subtitle">IUB Course Archive</span>
             </div>
           </NavLink>
 
@@ -81,7 +81,7 @@ export function Layout({ children }: { children: ReactNode }) {
               className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
             >
               <Compass size={15} />
-              Catalog
+              Course Directory
             </NavLink>
 
             {isAuthenticated && (
@@ -90,7 +90,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
               >
                 <LayoutDashboard size={15} />
-                Dashboard
+                My Workspace
               </NavLink>
             )}
 
@@ -102,7 +102,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
                   <ShieldCheck size={15} />
-                  Admin
+                  Admin Hub
                   {pendingCount > 0 && (
                     <span
                       className="badge badge-warning"
@@ -117,14 +117,14 @@ export function Layout({ children }: { children: ReactNode }) {
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
                   <FolderKanban size={15} />
-                  Courses
+                  Catalog CRUD
                 </NavLink>
                 <NavLink
                   to="/admin/materials"
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
                   <BookMarked size={15} />
-                  Materials
+                  Materials CRUD
                 </NavLink>
               </>
             )}
@@ -133,7 +133,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="nav-actions">
             <span className="api-pill" title="FastAPI /api/health status">
               <span className={`status-dot ${apiOnline ? "online" : "offline"}`} />
-              {apiOnline ? "Operational" : "Offline"}
+              {apiOnline ? "API Ready" : "API Offline"}
             </span>
 
             <a
@@ -143,18 +143,18 @@ export function Layout({ children }: { children: ReactNode }) {
               className="btn btn-secondary btn-sm"
               title="Open FastAPI OpenAPI Documentation"
             >
-              API <ExternalLink size={12} />
+              OpenAPI <ExternalLink size={12} />
             </a>
 
             {isAuthenticated && user ? (
               <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
                 <Link
                   to="/dashboard"
-                  className="badge badge-info"
+                  className="badge badge-success"
                   style={{ padding: "0.34rem 0.68rem", fontSize: "0.75rem" }}
                   title={`Signed in as ${user.email}`}
                 >
-                  {user.name} · {user.role}
+                  {user.name} · {user.role.toUpperCase()}
                 </Link>
                 <button
                   type="button"
@@ -162,7 +162,7 @@ export function Layout({ children }: { children: ReactNode }) {
                   onClick={logout}
                   title="Sign out"
                 >
-                  <LogOut size={13} />
+                  <LogOut size={13} /> Sign Out
                 </button>
               </div>
             ) : (
@@ -181,7 +181,7 @@ export function Layout({ children }: { children: ReactNode }) {
               className="btn-icon"
               onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
               aria-label="Toggle color theme"
-              title="Switch Dark / Light Mode"
+              title="Switch Archival Light / Graphite Dark Mode"
             >
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -189,7 +189,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="main-container" style={{ flex: 1, width: "100%" }}>
+      <main className="main-container" style={{ flex: 1 }}>
         {children}
       </main>
 
@@ -200,10 +200,10 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
           <a href="/api/docs" target="_blank" rel="noopener noreferrer">
-            OpenAPI Spec
+            REST API Docs (/api/docs)
           </a>
           <span>·</span>
-          <span>Built by Tanjil Hasan Emon (2331024)</span>
+          <span>Tanjil Hasan Emon (ID: 2331024)</span>
         </div>
       </footer>
     </div>
