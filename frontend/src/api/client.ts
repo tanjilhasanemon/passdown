@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { AxiosRequestConfig, AxiosResponse } from "axios";
+import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
 export const TOKEN_STORAGE_KEY = "passdown_access_token";
 export const AUTH_EXPIRED_EVENT = "passdown:auth-expired";
@@ -23,11 +23,10 @@ export const apiClient = axios.create({
   },
 });
 
-// Lightweight in-memory GET cache (instant page transitions, auto-cleared on any write)
 const CACHE_TTL_MS = 25000;
 const responseCache = new Map<string, { timestamp: number; data: unknown }>();
 
-function buildCacheKey(config: AxiosRequestConfig): string {
+function getCacheKey(config: InternalAxiosRequestConfig): string {
   const token = getStoredToken() ?? "anon";
   const params = config.params ? JSON.stringify(config.params) : "";
   return `${token}:${config.url ?? ""}:${params}`;
@@ -37,45 +36,44 @@ export function clearApiCache(): void {
   responseCache.clear();
 }
 
-const originalGet = apiClient.get.bind(apiClient);
-apiClient.get = (async <T = unknown, R = AxiosResponse<T>, D = unknown>(
-  url: string,
-  config?: AxiosRequestConfig<D>
-): Promise<R> => {
-  const key = buildCacheKey({ ...config, url });
-  const cached = responseCache.get(key);
-  const now = Date.now();
-  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
-    return {
-      data: cached.data as T,
-      status: 200,
-      statusText: "OK (cached)",
-      headers: {},
-      config: (config ?? {}) as AxiosResponse<T>["config"],
-    } as unknown as R;
-  }
-  const response = await originalGet<T, R, D>(url, config);
-  responseCache.set(key, {
-    timestamp: Date.now(),
-    data: (response as unknown as AxiosResponse<T>).data,
-  });
-  return response;
-}) as typeof apiClient.get;
-
 apiClient.interceptors.request.use((config) => {
   const token = getStoredToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   const method = (config.method ?? "get").toLowerCase();
   if (method !== "get") {
     responseCache.clear();
+    return config;
+  }
+
+  const key = getCacheKey(config);
+  const cached = responseCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    config.adapter = async (): Promise<AxiosResponse> => ({
+      data: cached.data,
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      config,
+    });
   }
   return config;
 });
 
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const method = (response.config.method ?? "get").toLowerCase();
+    if (method === "get" && response.status === 200) {
+      const key = getCacheKey(response.config);
+      responseCache.set(key, {
+        timestamp: Date.now(),
+        data: response.data,
+      });
+    }
+    return response;
+  },
   (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const requestUrl = error.config?.url ?? "";
