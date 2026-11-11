@@ -102,9 +102,13 @@ export function CourseListPage() {
   }, []);
 
   useEffect(() => {
+    if (!searchQuery) {
+      void fetchInitialCourses("");
+      return;
+    }
     const timer = window.setTimeout(() => {
       void fetchInitialCourses(searchQuery);
-    }, 180);
+    }, 150);
     return () => window.clearTimeout(timer);
   }, [searchQuery, fetchInitialCourses]);
 

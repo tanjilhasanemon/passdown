@@ -50,9 +50,13 @@ export function AdminCoursesPage() {
   }, []);
 
   useEffect(() => {
+    if (!searchQuery) {
+      void loadCourses("");
+      return;
+    }
     const timer = window.setTimeout(() => {
       void loadCourses(searchQuery);
-    }, 180);
+    }, 150);
     return () => window.clearTimeout(timer);
   }, [searchQuery, loadCourses]);
 

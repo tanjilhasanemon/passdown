@@ -1,4 +1,5 @@
 import axios from "axios";
+import type { AxiosRequestConfig, AxiosResponse } from "axios";
 
 export const TOKEN_STORAGE_KEY = "passdown_access_token";
 export const AUTH_EXPIRED_EVENT = "passdown:auth-expired";
@@ -22,16 +23,57 @@ export const apiClient = axios.create({
   },
 });
 
-// Request interceptor: attach Authorization: Bearer <token> (TDD §12.2)
+// Lightweight in-memory GET cache (instant page transitions, auto-cleared on any write)
+const CACHE_TTL_MS = 25000;
+const responseCache = new Map<string, { timestamp: number; data: unknown }>();
+
+function buildCacheKey(config: AxiosRequestConfig): string {
+  const token = getStoredToken() ?? "anon";
+  const params = config.params ? JSON.stringify(config.params) : "";
+  return `${token}:${config.url ?? ""}:${params}`;
+}
+
+export function clearApiCache(): void {
+  responseCache.clear();
+}
+
+const originalGet = apiClient.get.bind(apiClient);
+apiClient.get = (async <T = unknown, R = AxiosResponse<T>, D = unknown>(
+  url: string,
+  config?: AxiosRequestConfig<D>
+): Promise<R> => {
+  const key = buildCacheKey({ ...config, url });
+  const cached = responseCache.get(key);
+  const now = Date.now();
+  if (cached && now - cached.timestamp < CACHE_TTL_MS) {
+    return {
+      data: cached.data as T,
+      status: 200,
+      statusText: "OK (cached)",
+      headers: {},
+      config: (config ?? {}) as AxiosResponse<T>["config"],
+    } as unknown as R;
+  }
+  const response = await originalGet<T, R, D>(url, config);
+  responseCache.set(key, {
+    timestamp: Date.now(),
+    data: (response as unknown as AxiosResponse<T>).data,
+  });
+  return response;
+}) as typeof apiClient.get;
+
 apiClient.interceptors.request.use((config) => {
   const token = getStoredToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const method = (config.method ?? "get").toLowerCase();
+  if (method !== "get") {
+    responseCache.clear();
+  }
   return config;
 });
 
-// Response interceptor: handle 401 by clearing session and notifying AuthContext (FR-44, AC-26)
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -40,6 +82,7 @@ apiClient.interceptors.response.use(
       if (!requestUrl.includes("/auth/login")) {
         const hadToken = Boolean(getStoredToken());
         setStoredToken(null);
+        responseCache.clear();
         if (hadToken) {
           window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
         }

@@ -105,6 +105,10 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 html,
 body {
   margin: 0;
@@ -141,13 +145,14 @@ code,
 .navbar-inner {
   width: 100%;
   max-width: 1680px;
+  min-height: 62px;
   margin: 0 auto;
-  padding: 0.75rem clamp(1.25rem, 3.2vw, 3rem);
+  padding: 0.5rem clamp(1rem, 2.5vw, 2.5rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
-  flex-wrap: wrap;
+  gap: 0.85rem;
+  flex-wrap: nowrap;
 }
 
 .brand {
@@ -182,20 +187,25 @@ code,
 .nav-links {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  flex-wrap: wrap;
+  gap: 0.2rem;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .nav-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.42rem;
-  padding: 0.44rem 0.85rem;
+  gap: 0.38rem;
+  height: 36px;
+  padding: 0 0.78rem;
   border-radius: 6px;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   color: var(--text-secondary);
-  transition: all 0.14s ease;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
   border: 1px solid transparent;
 }
 
@@ -211,9 +221,11 @@ code,
 }
 
 .nav-actions {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .api-pill {

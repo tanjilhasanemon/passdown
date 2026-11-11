@@ -53,7 +53,7 @@ export function Layout({ children }: { children: ReactNode }) {
       }
     };
     void checkStatus();
-    const timer = window.setInterval(checkStatus, 10000);
+    const timer = window.setInterval(checkStatus, 15000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -64,7 +64,7 @@ export function Layout({ children }: { children: ReactNode }) {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header className="navbar">
         <div className="navbar-inner">
-          <NavLink to="/" className="brand">
+          <NavLink to="/" className="brand" style={{ flexShrink: 0 }}>
             <span className="brand-icon">
               <GraduationCap size={18} />
             </span>
@@ -81,7 +81,7 @@ export function Layout({ children }: { children: ReactNode }) {
               className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
             >
               <Compass size={15} />
-              Course Directory
+              <span>Catalog</span>
             </NavLink>
 
             {isAuthenticated && (
@@ -90,7 +90,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
               >
                 <LayoutDashboard size={15} />
-                My Workspace
+                <span>Workspace</span>
               </NavLink>
             )}
 
@@ -102,11 +102,16 @@ export function Layout({ children }: { children: ReactNode }) {
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
                   <ShieldCheck size={15} />
-                  Admin Hub
+                  <span>Admin Hub</span>
                   {pendingCount > 0 && (
                     <span
                       className="badge badge-warning"
-                      style={{ padding: "0.06rem 0.44rem", fontSize: "0.68rem" }}
+                      style={{
+                        padding: "0 0.38rem",
+                        height: "18px",
+                        fontSize: "0.68rem",
+                        lineHeight: "18px",
+                      }}
                     >
                       {pendingCount}
                     </span>
@@ -117,14 +122,14 @@ export function Layout({ children }: { children: ReactNode }) {
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
                   <FolderKanban size={15} />
-                  Catalog CRUD
+                  <span>Courses</span>
                 </NavLink>
                 <NavLink
                   to="/admin/materials"
                   className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
                 >
                   <BookMarked size={15} />
-                  Materials CRUD
+                  <span>Materials</span>
                 </NavLink>
               </>
             )}
@@ -133,7 +138,7 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="nav-actions">
             <span className="api-pill" title="FastAPI /api/health status">
               <span className={`status-dot ${apiOnline ? "online" : "offline"}`} />
-              {apiOnline ? "API Ready" : "API Offline"}
+              {apiOnline ? "Ready" : "Offline"}
             </span>
 
             <a
@@ -143,15 +148,19 @@ export function Layout({ children }: { children: ReactNode }) {
               className="btn btn-secondary btn-sm"
               title="Open FastAPI OpenAPI Documentation"
             >
-              OpenAPI <ExternalLink size={12} />
+              API <ExternalLink size={12} />
             </a>
 
             {isAuthenticated && user ? (
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
                 <Link
                   to="/dashboard"
                   className="badge badge-success"
-                  style={{ padding: "0.34rem 0.68rem", fontSize: "0.75rem" }}
+                  style={{
+                    height: "30px",
+                    padding: "0 0.62rem",
+                    fontSize: "0.74rem",
+                  }}
                   title={`Signed in as ${user.email}`}
                 >
                   {user.name} · {user.role.toUpperCase()}
@@ -183,7 +192,7 @@ export function Layout({ children }: { children: ReactNode }) {
               aria-label="Toggle color theme"
               title="Switch Archival Light / Graphite Dark Mode"
             >
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
             </button>
           </div>
         </div>

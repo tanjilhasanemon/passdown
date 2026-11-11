@@ -3,7 +3,7 @@ from typing import Any
 
 from sqlalchemy import Engine, create_engine, event, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import QueuePool
 
 from core.config import _default_sqlite_url, settings
 
@@ -33,9 +33,14 @@ def _build_engine() -> Engine:
         return _create_sqlite_engine(db_url)
 
     try:
+        # Reuse warm connections within the serverless instance while disabling prepared statements for PgBouncer
         pg_engine = create_engine(
             db_url,
-            poolclass=NullPool,
+            poolclass=QueuePool,
+            pool_size=5,
+            max_overflow=5,
+            pool_pre_ping=True,
+            pool_recycle=300,
             connect_args={"prepare_threshold": None, "connect_timeout": 5},
         )
         with pg_engine.connect() as conn:
@@ -73,7 +78,6 @@ def _ensure_beta_columns() -> None:
                             f"ALTER TABLE {table_name} ADD COLUMN author_id INTEGER REFERENCES app_user(id) ON DELETE SET NULL"
                         )
                     )
-        # Allow request.course_id to be NULL on PostgreSQL for general New Course requests
         if not settings.is_sqlite and inspector.has_table("request"):
             with engine.begin() as conn:
                 conn.execute(
