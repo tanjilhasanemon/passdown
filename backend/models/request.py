@@ -15,11 +15,11 @@ class MaterialRequest(Base):
     __tablename__ = "request"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    course_id: Mapped[int] = mapped_column(
+    course_id: Mapped[int | None] = mapped_column(
         Integer,
         ForeignKey("course.id", ondelete="CASCADE"),
         index=True,
-        nullable=False,
+        nullable=True,
     )
     author_id: Mapped[int | None] = mapped_column(
         Integer,
@@ -49,18 +49,18 @@ class MaterialRequest(Base):
         nullable=False,
     )
 
-    course: Mapped["Course"] = relationship("Course", back_populates="requests")
+    course: Mapped["Course | None"] = relationship("Course", back_populates="requests")
     author: Mapped["AppUser | None"] = relationship(
         "AppUser", back_populates="requests"
     )
 
     @property
     def course_code(self) -> str | None:
-        return self.course.code if self.course else None
+        return self.course.code if self.course else "NEW COURSE"
 
     @property
     def course_title(self) -> str | None:
-        return self.course.title if self.course else None
+        return self.course.title if self.course else "New Course Catalog Request"
 
 
 Request = MaterialRequest

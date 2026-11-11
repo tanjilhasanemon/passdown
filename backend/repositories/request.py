@@ -34,6 +34,39 @@ class RequestRepository:
         return items, total
 
     @staticmethod
+    def list_all(
+        db: Session,
+        status_filter: str | None = None,
+        course_id: int | None = None,
+        only_new_course_requests: bool = False,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> tuple[list[MaterialRequest], int]:
+        filters = []
+        if status_filter:
+            filters.append(MaterialRequest.status == status_filter)
+        if course_id is not None:
+            filters.append(MaterialRequest.course_id == course_id)
+        if only_new_course_requests:
+            filters.append(MaterialRequest.course_id.is_(None))
+
+        count_stmt = select(func.count()).select_from(MaterialRequest)
+        stmt = select(MaterialRequest).options(joinedload(MaterialRequest.course))
+        if filters:
+            count_stmt = count_stmt.where(*filters)
+            stmt = stmt.where(*filters)
+
+        total = db.scalar(count_stmt) or 0
+        items = list(
+            db.scalars(
+                stmt.order_by(MaterialRequest.created_at.desc(), MaterialRequest.id.desc())
+                .limit(limit)
+                .offset(offset)
+            ).all()
+        )
+        return items, total
+
+    @staticmethod
     def list_by_author(
         db: Session,
         author_id: int,
@@ -71,7 +104,7 @@ class RequestRepository:
     @staticmethod
     def create(
         db: Session,
-        course_id: int,
+        course_id: int | None,
         data: MaterialRequestCreate,
         author: AppUser,
     ) -> MaterialRequest:

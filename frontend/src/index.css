@@ -501,7 +501,7 @@ code,
   min-width: 240px;
 }
 
-.search-box svg.search-icon {
+.search-box > svg {
   position: absolute;
   left: 0.85rem;
   top: 50%;

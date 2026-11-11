@@ -145,7 +145,7 @@ export interface ContributionUpdatePayload {
 
 export interface MaterialRequest {
   id: number;
-  course_id: number;
+  course_id: number | null;
   course_code?: string | null;
   course_title?: string | null;
   author_id?: number | null;
@@ -158,6 +158,7 @@ export interface MaterialRequest {
 }
 
 export interface MaterialRequestCreatePayload {
+  course_id?: number | null;
   author_name?: string;
   title: string;
   description?: string | null;

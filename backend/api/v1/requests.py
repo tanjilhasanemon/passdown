@@ -16,6 +16,53 @@ router = APIRouter(tags=["Requests"])
 
 
 @router.get(
+    "/requests",
+    response_model=PaginatedResponse[MaterialRequestRead],
+)
+def list_all_requests(
+    status: RequestStatus | None = Query(
+        default=None,
+        description="Filter requests across all courses by status (open, fulfilled)",
+    ),
+    course_id: int | None = Query(
+        default=None,
+        description="Filter requests by course ID",
+    ),
+    new_course_only: bool = Query(
+        default=False,
+        description="If true, return only requests asking for a brand-new course",
+    ),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> PaginatedResponse[MaterialRequestRead]:
+    return RequestService.list_all_requests(
+        db,
+        status_filter=status,
+        course_id=course_id,
+        only_new_course_requests=new_course_only,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.post(
+    "/requests",
+    response_model=MaterialRequestRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_general_or_course_request(
+    data: MaterialRequestCreate,
+    db: Session = Depends(get_db),
+    current_user: AppUser = Security(get_current_user, scopes=["requests:write"]),
+) -> MaterialRequestRead:
+    material_request = RequestService.create_request(
+        db, course_id=data.course_id, data=data, current_user=current_user
+    )
+    return MaterialRequestRead.model_validate(material_request)
+
+
+@router.get(
     "/courses/{course_id}/requests",
     response_model=PaginatedResponse[MaterialRequestRead],
 )

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -6,14 +6,17 @@ import {
   Clock,
   Edit3,
   ExternalLink,
+  FolderPlus,
   HelpCircle,
   KeyRound,
   LayoutDashboard,
+  PlusCircle,
   Trash2,
   UploadCloud,
   UserCog,
 } from "lucide-react";
 import { contributionsApi } from "../api/contributions";
+import { coursesApi } from "../api/courses";
 import { extractErrorMessage } from "../api/client";
 import { meApi } from "../api/me";
 import { requestsApi } from "../api/requests";
@@ -28,8 +31,10 @@ import { useToast } from "../components/ToastContext";
 import {
   MATERIAL_TYPES,
   type Contribution,
+  type ContributionCreatePayload,
   type ContributionStatus,
   type ContributionUpdatePayload,
+  type Course,
   type MaterialRequest,
   type MaterialType,
   type RequestStatus,
@@ -37,10 +42,13 @@ import {
 } from "../types";
 
 type DashTab = "contributions" | "requests" | "settings";
+type RequestMode = "new_course" | "course_material";
 
 export function DashboardPage() {
   const { user, refreshProfile } = useAuth();
   const { showToast } = useToast();
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
 
   const [activeTab, setActiveTab] = useState<DashTab>("contributions");
   const [summary, setSummary] = useState<UserSummary>({
@@ -48,6 +56,7 @@ export function DashboardPage() {
     requests: { open: 0, fulfilled: 0 },
   });
 
+  const [courses, setCourses] = useState<Course[]>([]);
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [contribFilter, setContribFilter] = useState<ContributionStatus | "">("");
 
@@ -56,6 +65,25 @@ export function DashboardPage() {
 
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
+
+  // Create Contribution Modal from Dashboard
+  const [isNewContribOpen, setIsNewContribOpen] = useState<boolean>(false);
+  const [selectedContribCourseId, setSelectedContribCourseId] = useState<number>(0);
+  const [newContribForm, setNewContribForm] = useState<ContributionCreatePayload>({
+    title: "",
+    type: "notes",
+    url: "",
+    description: "",
+  });
+
+  // Create Request Modal from Dashboard (supports New Course OR Existing Course Material)
+  const [isNewRequestOpen, setIsNewRequestOpen] = useState<boolean>(false);
+  const [requestMode, setRequestMode] = useState<RequestMode>("new_course");
+  const [selectedReqCourseId, setSelectedReqCourseId] = useState<number>(0);
+  const [requestedCourseCode, setRequestedCourseCode] = useState<string>("");
+  const [requestedCourseTitle, setRequestedCourseTitle] = useState<string>("");
+  const [requestTitle, setRequestTitle] = useState<string>("");
+  const [requestDesc, setRequestDesc] = useState<string>("");
 
   // Edit Pending Contribution Modal
   const [editingContrib, setEditingContrib] = useState<Contribution | null>(null);
@@ -66,7 +94,7 @@ export function DashboardPage() {
     description: "",
   });
 
-  // Profile & Password Forms (FR-37, US-21)
+  // Profile & Password Forms
   const [displayName, setDisplayName] = useState<string>(user?.name ?? "");
   const [currentPassword, setCurrentPassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
@@ -80,24 +108,106 @@ export function DashboardPage() {
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryRes, contribRes, reqRes] = await Promise.all([
+      const [summaryRes, contribRes, reqRes, coursesRes] = await Promise.allSettled([
         meApi.getSummary(),
         meApi.listContributions({ status: contribFilter, limit: 100 }),
         meApi.listRequests({ status: requestFilter, limit: 100 }),
+        coursesApi.list({ limit: 100 }),
       ]);
-      setSummary(summaryRes);
-      setContributions(contribRes.items);
-      setRequests(reqRes.items);
+
+      if (summaryRes.status === "fulfilled") setSummary(summaryRes.value);
+      if (contribRes.status === "fulfilled") setContributions(contribRes.value.items);
+      if (reqRes.status === "fulfilled") setRequests(reqRes.value.items);
+      if (coursesRes.status === "fulfilled") {
+        setCourses(coursesRes.value.items);
+        if (coursesRes.value.items.length > 0) {
+          setSelectedContribCourseId((prev) => prev || coursesRes.value.items[0].id);
+          setSelectedReqCourseId((prev) => prev || coursesRes.value.items[0].id);
+        }
+      }
     } catch (err) {
-      showToast(extractErrorMessage(err), "error");
+      showToastRef.current(extractErrorMessage(err), "error");
     } finally {
       setLoading(false);
     }
-  }, [contribFilter, requestFilter, showToast]);
+  }, [contribFilter, requestFilter]);
 
   useEffect(() => {
     void loadDashboardData();
   }, [loadDashboardData]);
+
+  const openNewCourseRequestModal = () => {
+    setRequestMode("new_course");
+    setRequestedCourseCode("");
+    setRequestedCourseTitle("");
+    setRequestDesc("");
+    setIsNewRequestOpen(true);
+  };
+
+  const openMaterialRequestModal = () => {
+    setRequestMode("course_material");
+    setRequestTitle("");
+    setRequestDesc("");
+    setIsNewRequestOpen(true);
+  };
+
+  const handleCreateDashboardRequest = async (event: FormEvent) => {
+    event.preventDefault();
+    setSubmitting(true);
+    try {
+      if (requestMode === "new_course") {
+        const cleanCode = requestedCourseCode.trim().toUpperCase();
+        const cleanName = requestedCourseTitle.trim();
+        await requestsApi.createGeneral({
+          course_id: null,
+          title: `[NEW COURSE: ${cleanCode}] ${cleanName}`,
+          description:
+            requestDesc.trim() ||
+            `Student request to add ${cleanCode} — ${cleanName} to the PassDown course catalog.`,
+        });
+        showToast(`New course request for ${cleanCode} submitted!`, "success");
+      } else {
+        if (!selectedReqCourseId) {
+          showToast("Please select a course", "error");
+          setSubmitting(false);
+          return;
+        }
+        await requestsApi.create(selectedReqCourseId, {
+          title: requestTitle,
+          description: requestDesc,
+        });
+        showToast("Material request posted!", "success");
+      }
+      setIsNewRequestOpen(false);
+      setActiveTab("requests");
+      await loadDashboardData();
+    } catch (err) {
+      showToast(extractErrorMessage(err), "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateDashboardContribution = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!selectedContribCourseId) {
+      showToast("Please select a course first", "error");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await contributionsApi.create(selectedContribCourseId, newContribForm);
+      showToast("Contribution submitted for admin review!", "success");
+      setIsNewContribOpen(false);
+      setNewContribForm({ title: "", type: "notes", url: "", description: "" });
+      setActiveTab("contributions");
+      await loadDashboardData();
+    } catch (err) {
+      showToast(extractErrorMessage(err), "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const openEditContribution = (item: Contribution) => {
     setEditingContrib(item);
@@ -180,7 +290,7 @@ export function DashboardPage() {
       });
       setCurrentPassword("");
       setNewPassword("");
-      showToast("Password changed! Use your new password next time you sign in.", "success");
+      showToast("Password changed!", "success");
     } catch (err) {
       showToast(extractErrorMessage(err), "error");
     } finally {
@@ -190,35 +300,56 @@ export function DashboardPage() {
 
   return (
     <div>
-      {/* Hero Banner */}
+      {/* Hero Banner with Direct Action Buttons */}
       <section className="hero-banner">
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
-            gap: "1rem",
+            alignItems: "flex-start",
+            gap: "1.25rem",
             flexWrap: "wrap",
           }}
         >
           <div>
             <span className="hero-eyebrow">
-              <LayoutDashboard size={14} /> Personal Workspace • {user?.role?.toUpperCase()}
+              <LayoutDashboard size={14} /> Personal Workspace •{" "}
+              {user?.role?.toUpperCase()}
             </span>
             <h1 className="hero-title">Welcome, {user?.name}</h1>
             <p className="hero-subtitle">
-              Signed in as <strong>{user?.email}</strong>. Track the approval status
-              of your contributed study links, manage your open material requests,
-              or update your account credentials.
+              Signed in as <strong>{user?.email}</strong>. Submit study links,
+              request missing courses or study materials, and manage your profile.
             </p>
           </div>
-          <Link to="/" className="btn btn-primary">
-            Explore Courses
-          </Link>
+
+          <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={openNewCourseRequestModal}
+            >
+              <FolderPlus size={15} /> + Request New Course
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={openMaterialRequestModal}
+            >
+              <PlusCircle size={15} /> + Request Material
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsNewContribOpen(true)}
+            >
+              <UploadCloud size={15} /> + Contribute Link
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* Summary Statistics Cards (GET /me/summary - FR-36, AC-22, AC-29) */}
+      {/* Summary Statistics Cards */}
       <div className="stats-grid">
         <div className="stat-card">
           <div>
@@ -228,7 +359,7 @@ export function DashboardPage() {
             </div>
           </div>
           <span className="badge badge-warning">
-            <Clock size={15} /> In Review
+            <Clock size={14} /> In Review
           </span>
         </div>
 
@@ -240,7 +371,7 @@ export function DashboardPage() {
             </div>
           </div>
           <span className="badge badge-success">
-            <CheckCircle2 size={15} /> Published
+            <CheckCircle2 size={14} /> Published
           </span>
         </div>
 
@@ -256,13 +387,13 @@ export function DashboardPage() {
 
         <div className="stat-card">
           <div>
-            <div className="stat-label">My Material Requests</div>
+            <div className="stat-label">My Course &amp; Material Requests</div>
             <div className="stat-value">
               {summary.requests.open} Open / {summary.requests.fulfilled} Done
             </div>
           </div>
           <span className="badge badge-info">
-            <HelpCircle size={15} /> Requests
+            <HelpCircle size={14} /> Requests
           </span>
         </div>
       </div>
@@ -276,7 +407,7 @@ export function DashboardPage() {
           className={`tab-btn ${activeTab === "contributions" ? "active" : ""}`}
           onClick={() => setActiveTab("contributions")}
         >
-          <UploadCloud size={16} /> My Contributions ({contributions.length})
+          <UploadCloud size={15} /> My Contributions ({contributions.length})
         </button>
 
         <button
@@ -286,7 +417,7 @@ export function DashboardPage() {
           className={`tab-btn ${activeTab === "requests" ? "active" : ""}`}
           onClick={() => setActiveTab("requests")}
         >
-          <HelpCircle size={16} /> My Requests ({requests.length})
+          <HelpCircle size={15} /> My Course &amp; Material Requests ({requests.length})
         </button>
 
         <button
@@ -296,7 +427,7 @@ export function DashboardPage() {
           className={`tab-btn ${activeTab === "settings" ? "active" : ""}`}
           onClick={() => setActiveTab("settings")}
         >
-          <UserCog size={16} /> Profile &amp; Password
+          <UserCog size={15} /> Profile &amp; Password
         </button>
       </div>
 
@@ -334,16 +465,30 @@ export function DashboardPage() {
                 Rejected ({summary.contributions.rejected})
               </button>
             </div>
+
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() => setIsNewContribOpen(true)}
+            >
+              <UploadCloud size={14} /> + Submit Contribution
+            </button>
           </div>
 
           {loading ? (
             <div className="empty-state">Loading your contributions...</div>
           ) : contributions.length === 0 ? (
             <div className="empty-state">
-              <p>You have no contributions matching this filter yet.</p>
-              <Link to="/" className="btn btn-primary btn-sm">
-                Browse Courses to Contribute
-              </Link>
+              <p style={{ margin: "0 0 1rem" }}>
+                You have no contributions matching this filter yet.
+              </p>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => setIsNewContribOpen(true)}
+              >
+                <UploadCloud size={14} /> Submit First Contribution
+              </button>
             </div>
           ) : (
             <div className="table-wrapper">
@@ -433,7 +578,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* TAB 2: My Requests */}
+      {/* TAB 2: My Course & Material Requests */}
       {activeTab === "requests" && (
         <div>
           <div className="toolbar">
@@ -460,23 +605,55 @@ export function DashboardPage() {
                 Fulfilled ({summary.requests.fulfilled})
               </button>
             </div>
+
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={openNewCourseRequestModal}
+              >
+                <FolderPlus size={14} /> + Request Missing Course
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={openMaterialRequestModal}
+              >
+                <PlusCircle size={14} /> + Request Course Material
+              </button>
+            </div>
           </div>
 
           {loading ? (
             <div className="empty-state">Loading your requests...</div>
           ) : requests.length === 0 ? (
             <div className="empty-state">
-              <p>You have not posted any material requests matching this filter.</p>
-              <Link to="/" className="btn btn-primary btn-sm">
-                Browse Courses to Post a Request
-              </Link>
+              <p style={{ margin: "0 0 1rem" }}>
+                You haven&apos;t requested any missing courses or materials yet.
+              </p>
+              <div style={{ display: "flex", justifyContent: "center", gap: "0.6rem" }}>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={openNewCourseRequestModal}
+                >
+                  <FolderPlus size={14} /> Request Missing Course
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={openMaterialRequestModal}
+                >
+                  <PlusCircle size={14} /> Request Course Material
+                </button>
+              </div>
             </div>
           ) : (
             <div className="table-wrapper">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Course</th>
+                    <th>Target</th>
                     <th>Request Title &amp; Details</th>
                     <th>Status</th>
                     <th style={{ textAlign: "right" }}>Actions</th>
@@ -486,12 +663,16 @@ export function DashboardPage() {
                   {requests.map((req) => (
                     <tr key={req.id}>
                       <td>
-                        <Link
-                          to={`/courses/${req.course_id}`}
-                          className="course-code-badge"
-                        >
-                          {req.course_code || `Course #${req.course_id}`}
-                        </Link>
+                        {req.course_id ? (
+                          <Link
+                            to={`/courses/${req.course_id}`}
+                            className="course-code-badge"
+                          >
+                            {req.course_code || `Course #${req.course_id}`}
+                          </Link>
+                        ) : (
+                          <span className="badge badge-info">NEW COURSE</span>
+                        )}
                       </td>
                       <td>
                         <div style={{ fontWeight: 700 }}>{req.title}</div>
@@ -544,7 +725,7 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* TAB 3: Profile & Password Settings (FR-37, US-21) */}
+      {/* TAB 3: Profile & Password Settings */}
       {activeTab === "settings" && (
         <div
           style={{
@@ -639,6 +820,267 @@ export function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Modal: Request New Course OR Request Course Material */}
+      <Modal
+        isOpen={isNewRequestOpen}
+        title={
+          requestMode === "new_course"
+            ? "Request a Missing Course to be Added"
+            : "Request Study Material for a Course"
+        }
+        onClose={() => setIsNewRequestOpen(false)}
+      >
+        <div className="filter-pills" style={{ marginBottom: "1rem", width: "100%" }}>
+          <button
+            type="button"
+            style={{ flex: 1 }}
+            className={`filter-pill ${requestMode === "new_course" ? "active" : ""}`}
+            onClick={() => setRequestMode("new_course")}
+          >
+            Request Missing Course
+          </button>
+          <button
+            type="button"
+            style={{ flex: 1 }}
+            className={`filter-pill ${requestMode === "course_material" ? "active" : ""}`}
+            onClick={() => setRequestMode("course_material")}
+          >
+            Request Material for Existing Course
+          </button>
+        </div>
+
+        <form onSubmit={handleCreateDashboardRequest}>
+          {requestMode === "new_course" ? (
+            <>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Desired Course Code *</label>
+                  <input
+                    type="text"
+                    className="form-input mono"
+                    required
+                    minLength={2}
+                    maxLength={20}
+                    placeholder="e.g. CSE499"
+                    value={requestedCourseCode}
+                    onChange={(e) =>
+                      setRequestedCourseCode(e.target.value.toUpperCase())
+                    }
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Course Name *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    required
+                    minLength={3}
+                    maxLength={140}
+                    placeholder="e.g. Senior Design Project"
+                    value={requestedCourseTitle}
+                    onChange={(e) => setRequestedCourseTitle(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Department / Semester / Notes (optional)</label>
+                <textarea
+                  className="form-textarea"
+                  maxLength={1000}
+                  placeholder="Which department offers this course and what materials are you hoping to find?"
+                  value={requestDesc}
+                  onChange={(e) => setRequestDesc(e.target.value)}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="form-group">
+                <label className="form-label">Select Existing Course *</label>
+                <select
+                  className="form-select"
+                  value={selectedReqCourseId}
+                  onChange={(e) => setSelectedReqCourseId(Number(e.target.value))}
+                >
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.code} — {c.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">What material are you looking for? (5–200 chars) *</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  required
+                  minLength={5}
+                  maxLength={200}
+                  placeholder="e.g. Need Autumn 2025 Final Question Paper"
+                  value={requestTitle}
+                  onChange={(e) => setRequestTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Additional Details (optional)</label>
+                <textarea
+                  className="form-textarea"
+                  maxLength={1000}
+                  placeholder="Specific topics, semester, or instructor..."
+                  value={requestDesc}
+                  onChange={(e) => setRequestDesc(e.target.value)}
+                />
+              </div>
+            </>
+          )}
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "0.65rem",
+              marginTop: "1.25rem",
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsNewRequestOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting}
+            >
+              {submitting
+                ? "Submitting..."
+                : requestMode === "new_course"
+                ? "Submit Course Request"
+                : "Post Material Request"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: Contribute Study Link from Dashboard */}
+      <Modal
+        isOpen={isNewContribOpen}
+        title="Contribute a Study Resource Link"
+        onClose={() => setIsNewContribOpen(false)}
+      >
+        <form onSubmit={handleCreateDashboardContribution}>
+          <div className="form-group">
+            <label className="form-label">Select Course *</label>
+            <select
+              className="form-select"
+              value={selectedContribCourseId}
+              onChange={(e) => setSelectedContribCourseId(Number(e.target.value))}
+            >
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.code} — {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Resource Title *</label>
+            <input
+              type="text"
+              className="form-input"
+              required
+              minLength={3}
+              maxLength={200}
+              placeholder="e.g. Complete Midterm & Final Notes"
+              value={newContribForm.title}
+              onChange={(e) =>
+                setNewContribForm({ ...newContribForm, title: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Material Type *</label>
+            <select
+              className="form-select"
+              value={newContribForm.type}
+              onChange={(e) =>
+                setNewContribForm({
+                  ...newContribForm,
+                  type: e.target.value as MaterialType,
+                })
+              }
+            >
+              {MATERIAL_TYPES.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">External URL (http:// or https://) *</label>
+            <input
+              type="url"
+              className="form-input"
+              required
+              placeholder="https://drive.google.com/..."
+              value={newContribForm.url}
+              onChange={(e) =>
+                setNewContribForm({ ...newContribForm, url: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Description (optional)</label>
+            <textarea
+              className="form-textarea"
+              maxLength={1000}
+              value={newContribForm.description ?? ""}
+              onChange={(e) =>
+                setNewContribForm({
+                  ...newContribForm,
+                  description: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "0.65rem",
+              marginTop: "1.25rem",
+            }}
+          >
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsNewContribOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting}
+            >
+              {submitting ? "Submitting..." : "Submit for Review"}
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Edit Pending Contribution Modal */}
       <Modal

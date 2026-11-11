@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -17,12 +17,14 @@ import type { Course, CoursePayload } from "../types";
 
 export function AdminCoursesPage() {
   const { showToast } = useToast();
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
-  // Create / Edit Modal
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState<CoursePayload>({
@@ -32,10 +34,7 @@ export function AdminCoursesPage() {
     semester_offered: "",
   });
 
-  // Read Single Inspector Modal (calls GET /api/v1/courses/{id})
   const [inspectedCourse, setInspectedCourse] = useState<Course | null>(null);
-
-  // Delete Confirmation Modal
   const [deletingCourse, setDeletingCourse] = useState<Course | null>(null);
 
   const loadCourses = useCallback(async (q: string) => {
@@ -44,16 +43,16 @@ export function AdminCoursesPage() {
       const res = await coursesApi.list({ q, limit: 100 });
       setCourses(res.items);
     } catch (err) {
-      showToast(extractErrorMessage(err), "error");
+      showToastRef.current(extractErrorMessage(err), "error");
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void loadCourses(searchQuery);
-    }, 200);
+    }, 180);
     return () => window.clearTimeout(timer);
   }, [searchQuery, loadCourses]);
 
@@ -149,14 +148,14 @@ export function AdminCoursesPage() {
             className="btn btn-primary"
             onClick={openCreateModal}
           >
-            <FolderPlus size={17} /> Add Course
+            <FolderPlus size={17} /> + Add Course
           </button>
         </div>
       </section>
 
       <div className="toolbar">
         <div className="search-box">
-          <Search size={18} />
+          <Search size={17} className="search-icon" />
           <input
             type="text"
             className="search-input"
@@ -174,7 +173,7 @@ export function AdminCoursesPage() {
         <div className="empty-state">Loading courses...</div>
       ) : courses.length === 0 ? (
         <div className="empty-state">
-          <p>No courses found. Click "Add Course" to create one.</p>
+          <p>No courses found. Click "+ Add Course" to create one.</p>
         </div>
       ) : (
         <div className="table-wrapper">
@@ -249,7 +248,6 @@ export function AdminCoursesPage() {
         </div>
       )}
 
-      {/* Create / Update Modal */}
       <Modal
         isOpen={isFormOpen}
         title={editingCourse ? `Edit ${editingCourse.code}` : "Create Course"}
@@ -346,7 +344,6 @@ export function AdminCoursesPage() {
         </form>
       </Modal>
 
-      {/* Read Single Course Inspector Modal */}
       <Modal
         isOpen={Boolean(inspectedCourse)}
         title={`Course Record #${inspectedCourse?.id ?? ""}`}
@@ -368,7 +365,7 @@ export function AdminCoursesPage() {
               className="mono"
               style={{
                 padding: "0.9rem",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 background: "var(--bg-secondary)",
                 border: "1px solid var(--border-subtle)",
                 fontSize: "0.78rem",
@@ -398,7 +395,6 @@ export function AdminCoursesPage() {
         )}
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={Boolean(deletingCourse)}
         title="Delete Course"
