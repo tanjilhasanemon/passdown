@@ -8,6 +8,28 @@ import type {
 } from "../types";
 
 export const requestsApi = {
+  async listAll(params?: {
+    status?: RequestStatus | "";
+    course_id?: number;
+    new_course_only?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<PaginatedResponse<MaterialRequest>> {
+    const response = await apiClient.get<PaginatedResponse<MaterialRequest>>(
+      "/requests",
+      {
+        params: {
+          status: params?.status || undefined,
+          course_id: params?.course_id,
+          new_course_only: params?.new_course_only || undefined,
+          limit: params?.limit ?? 100,
+          offset: params?.offset ?? 0,
+        },
+      }
+    );
+    return response.data;
+  },
+
   async listByCourse(
     courseId: number,
     params?: { status?: RequestStatus | ""; limit?: number; offset?: number }
@@ -28,6 +50,16 @@ export const requestsApi = {
   async getById(requestId: number): Promise<MaterialRequest> {
     const response = await apiClient.get<MaterialRequest>(
       `/requests/${requestId}`
+    );
+    return response.data;
+  },
+
+  async createGeneral(
+    payload: MaterialRequestCreatePayload
+  ): Promise<MaterialRequest> {
+    const response = await apiClient.post<MaterialRequest>(
+      "/requests",
+      payload
     );
     return response.data;
   },

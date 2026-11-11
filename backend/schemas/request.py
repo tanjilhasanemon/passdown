@@ -8,6 +8,7 @@ from schemas.common import RequestStatus, normalize_optional_str
 class MaterialRequestCreate(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
+    course_id: int | None = None
     title: str
     description: str | None = None
 
@@ -49,7 +50,7 @@ class MaterialRequestRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    course_id: int
+    course_id: int | None = None
     course_code: str | None = None
     course_title: str | None = None
     author_id: int | None = None

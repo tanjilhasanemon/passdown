@@ -38,6 +38,30 @@ class RequestService:
         )
 
     @staticmethod
+    def list_all_requests(
+        db: Session,
+        status_filter: str | None = None,
+        course_id: int | None = None,
+        only_new_course_requests: bool = False,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> PaginatedResponse[MaterialRequestRead]:
+        items, total = RequestRepository.list_all(
+            db,
+            status_filter=status_filter,
+            course_id=course_id,
+            only_new_course_requests=only_new_course_requests,
+            limit=limit,
+            offset=offset,
+        )
+        return PaginatedResponse[MaterialRequestRead](
+            items=[MaterialRequestRead.model_validate(item) for item in items],
+            total=total,
+            limit=limit,
+            offset=offset,
+        )
+
+    @staticmethod
     def get_request(db: Session, request_id: int) -> MaterialRequest:
         material_request = RequestRepository.get_by_id(db, request_id)
         if not material_request:
@@ -50,13 +74,17 @@ class RequestService:
     @staticmethod
     def create_request(
         db: Session,
-        course_id: int,
+        course_id: int | None,
         data: MaterialRequestCreate,
         current_user: AppUser,
     ) -> MaterialRequest:
-        CourseService.get_course(db, course_id)
+        target_course_id = course_id if course_id is not None else data.course_id
+        if target_course_id is not None and target_course_id > 0:
+            CourseService.get_course(db, target_course_id)
+        else:
+            target_course_id = None
         return RequestRepository.create(
-            db, course_id=course_id, data=data, author=current_user
+            db, course_id=target_course_id, data=data, author=current_user
         )
 
     @staticmethod
@@ -83,7 +111,6 @@ class RequestService:
         current_user: AppUser,
     ) -> MaterialRequest:
         material_request = RequestService.get_request(db, request_id)
-        # FR-35: Owner or Admin can mark a request fulfilled
         if current_user.role != "admin" and material_request.author_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -98,7 +125,6 @@ class RequestService:
         current_user: AppUser,
     ) -> None:
         material_request = RequestService.get_request(db, request_id)
-        # FR-35: Owner or Admin can delete a request
         if current_user.role != "admin" and material_request.author_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

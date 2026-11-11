@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   BookMarked,
   CheckCircle2,
   ExternalLink,
   FolderKanban,
+  FolderPlus,
   HelpCircle,
   Layers,
   ShieldCheck,
@@ -18,27 +19,32 @@ import {
 import { adminApi } from "../api/admin";
 import { contributionsApi } from "../api/contributions";
 import { coursesApi } from "../api/courses";
+import { requestsApi } from "../api/requests";
 import { extractErrorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import {
   ContributionStatusBadge,
   MaterialTypeBadge,
+  RequestStatusBadge,
 } from "../components/Badge";
 import { useToast } from "../components/ToastContext";
 import type {
   Contribution,
   ContributionStatus,
   Course,
+  MaterialRequest,
   ModerationStatus,
   PlatformStats,
   User,
 } from "../types";
 
-type AdminTab = "moderation" | "users";
+type AdminTab = "moderation" | "requests" | "users";
 
 export function AdminDashboardPage() {
   const { user: currentAdmin } = useAuth();
   const { showToast } = useToast();
+  const showToastRef = useRef(showToast);
+  showToastRef.current = showToast;
 
   const [activeTab, setActiveTab] = useState<AdminTab>("moderation");
   const [stats, setStats] = useState<PlatformStats>({
@@ -51,6 +57,7 @@ export function AdminDashboardPage() {
 
   const [contributions, setContributions] = useState<Contribution[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [allRequests, setAllRequests] = useState<MaterialRequest[]>([]);
   const [statusFilter, setStatusFilter] = useState<ContributionStatus | "">("pending");
   const [courseFilter, setCourseFilter] = useState<number | undefined>(undefined);
 
@@ -60,26 +67,30 @@ export function AdminDashboardPage() {
   const loadAdminData = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, contribRes, coursesRes, usersRes] = await Promise.all([
-        adminApi.getStats(),
-        contributionsApi.listAll({
-          status: statusFilter,
-          course_id: courseFilter,
-          limit: 100,
-        }),
-        coursesApi.list({ limit: 100 }),
-        adminApi.listUsers({ limit: 100 }),
-      ]);
-      setStats(statsRes);
-      setContributions(contribRes.items);
-      setCourses(coursesRes.items);
-      setUsers(usersRes.items);
+      const [statsRes, contribRes, coursesRes, usersRes, requestsRes] =
+        await Promise.allSettled([
+          adminApi.getStats(),
+          contributionsApi.listAll({
+            status: statusFilter,
+            course_id: courseFilter,
+            limit: 100,
+          }),
+          coursesApi.list({ limit: 100 }),
+          adminApi.listUsers({ limit: 100 }),
+          requestsApi.listAll({ limit: 100 }),
+        ]);
+
+      if (statsRes.status === "fulfilled") setStats(statsRes.value);
+      if (contribRes.status === "fulfilled") setContributions(contribRes.value.items);
+      if (coursesRes.status === "fulfilled") setCourses(coursesRes.value.items);
+      if (usersRes.status === "fulfilled") setUsers(usersRes.value.items);
+      if (requestsRes.status === "fulfilled") setAllRequests(requestsRes.value.items);
     } catch (err) {
-      showToast(extractErrorMessage(err), "error");
+      showToastRef.current(extractErrorMessage(err), "error");
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, courseFilter, showToast]);
+  }, [statusFilter, courseFilter]);
 
   useEffect(() => {
     void loadAdminData();
@@ -108,6 +119,49 @@ export function AdminDashboardPage() {
     }
   };
 
+  const handleApproveNewCourseRequest = async (req: MaterialRequest) => {
+    // Parse "[NEW COURSE: CODE] Title" if formatted from Student Dashboard
+    const match = req.title.match(/^\[NEW COURSE:\s*([A-Z0-9_-]+)\]\s*(.+)$/i);
+    const code = match ? match[1].toUpperCase() : "NEW101";
+    const title = match ? match[2].trim() : req.title;
+    const deptMatch = code.match(/^([A-Z]+)/);
+    const dept = deptMatch ? deptMatch[1] : "CSE";
+
+    try {
+      await coursesApi.create({
+        code,
+        title,
+        department: dept,
+        semester_offered: "Autumn 2026",
+      });
+      await requestsApi.fulfill(req.id);
+      showToast(`Created course ${code} and marked request fulfilled!`, "success");
+      await loadAdminData();
+    } catch (err) {
+      showToast(extractErrorMessage(err), "error");
+    }
+  };
+
+  const handleFulfillRequest = async (req: MaterialRequest) => {
+    try {
+      await requestsApi.fulfill(req.id);
+      showToast(`Marked "${req.title}" as fulfilled`, "success");
+      await loadAdminData();
+    } catch (err) {
+      showToast(extractErrorMessage(err), "error");
+    }
+  };
+
+  const handleDeleteRequest = async (req: MaterialRequest) => {
+    try {
+      await requestsApi.remove(req.id);
+      showToast(`Deleted request "${req.title}"`, "info");
+      await loadAdminData();
+    } catch (err) {
+      showToast(extractErrorMessage(err), "error");
+    }
+  };
+
   const handleToggleUserActive = async (targetUser: User) => {
     const nextActive = !targetUser.is_active;
     try {
@@ -126,7 +180,6 @@ export function AdminDashboardPage() {
 
   return (
     <div>
-      {/* Admin Hero Banner */}
       <section className="hero-banner">
         <div
           style={{
@@ -144,7 +197,7 @@ export function AdminDashboardPage() {
             <h1 className="hero-title">Platform Overview &amp; Administration</h1>
             <p className="hero-subtitle">
               Monitor platform-wide metrics, review pending student contributions,
-              and manage registered user accounts.
+              approve new course requests, and manage registered user accounts.
             </p>
           </div>
           <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap" }}>
@@ -158,12 +211,11 @@ export function AdminDashboardPage() {
         </div>
       </section>
 
-      {/* Platform Statistics Grid (GET /admin/stats - FR-38, AC-24, AC-30) */}
       <div className="stats-grid">
         <div className="stat-card">
           <div>
             <div className="stat-label">Registered Users</div>
-            <div className="stat-value">{stats.users}</div>
+            <div className="stat-value">{stats.users || users.length}</div>
           </div>
           <span className="brand-icon" style={{ width: 42, height: 42 }}>
             <Users size={20} />
@@ -174,7 +226,7 @@ export function AdminDashboardPage() {
           <div>
             <div className="stat-label">Courses &amp; Core Materials</div>
             <div className="stat-value">
-              {stats.courses} / {stats.core_materials}
+              {stats.courses || courses.length} / {stats.core_materials}
             </div>
           </div>
           <span className="brand-icon" style={{ width: 42, height: 42 }}>
@@ -217,7 +269,6 @@ export function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Admin Tabs */}
       <div className="tabs-bar" role="tablist">
         <button
           type="button"
@@ -229,6 +280,18 @@ export function AdminDashboardPage() {
           <ShieldCheck size={16} />
           Moderation Queue
           <span className="badge badge-warning">{stats.contributions.pending} pending</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "requests"}
+          className={`tab-btn ${activeTab === "requests" ? "active" : ""}`}
+          onClick={() => setActiveTab("requests")}
+        >
+          <HelpCircle size={16} />
+          Course &amp; Material Requests
+          <span className="badge badge-info">{allRequests.length}</span>
         </button>
 
         <button
@@ -402,7 +465,104 @@ export function AdminDashboardPage() {
         </div>
       )}
 
-      {/* TAB 2: User Management (GET /admin/users & PATCH /admin/users/{id}/active - FR-39, AC-25, AC-30) */}
+      {/* TAB 2: Course & Material Requests (Admin Review & 1-Click Course Creation) */}
+      {activeTab === "requests" && (
+        <div>
+          {allRequests.length === 0 ? (
+            <div className="empty-state">
+              <p>No course or material requests have been submitted yet.</p>
+            </div>
+          ) : (
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Target</th>
+                    <th>Request Title &amp; Student</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: "right" }}>Admin Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allRequests.map((req) => {
+                    const isNewCourseReq =
+                      !req.course_id || req.title.startsWith("[NEW COURSE:");
+                    return (
+                      <tr key={req.id}>
+                        <td>
+                          {req.course_id ? (
+                            <Link
+                              to={`/courses/${req.course_id}`}
+                              className="course-code-badge"
+                            >
+                              {req.course_code || `Course #${req.course_id}`}
+                            </Link>
+                          ) : (
+                            <span className="badge badge-info">NEW COURSE</span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ fontWeight: 700 }}>{req.title}</div>
+                          <div
+                            style={{
+                              fontSize: "0.8rem",
+                              color: "var(--text-secondary)",
+                            }}
+                          >
+                            Requested by <strong>{req.author_name}</strong>
+                            {req.description ? ` • ${req.description}` : ""}
+                          </div>
+                        </td>
+                        <td>
+                          <RequestStatusBadge status={req.status} />
+                        </td>
+                        <td>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "flex-end",
+                              gap: "0.45rem",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {req.status === "open" && isNewCourseReq && (
+                              <button
+                                type="button"
+                                className="btn btn-primary btn-sm"
+                                onClick={() => void handleApproveNewCourseRequest(req)}
+                              >
+                                <FolderPlus size={14} /> Create Course &amp; Fulfill
+                              </button>
+                            )}
+                            {req.status === "open" && (
+                              <button
+                                type="button"
+                                className="btn btn-success btn-sm"
+                                onClick={() => void handleFulfillRequest(req)}
+                              >
+                                <CheckCircle2 size={14} /> Mark Fulfilled
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              className="btn btn-danger btn-sm"
+                              onClick={() => void handleDeleteRequest(req)}
+                            >
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: User Management */}
       {activeTab === "users" && (
         <div className="table-wrapper">
           <table className="data-table">

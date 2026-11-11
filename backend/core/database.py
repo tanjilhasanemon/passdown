@@ -59,19 +59,28 @@ _db_initialized = False
 
 
 def _ensure_beta_columns() -> None:
-    """Ensure author_id columns exist on contribution and request tables when upgrading from MVP."""
-    inspector = inspect(engine)
-    for table_name in ("contribution", "request"):
-        if not inspector.has_table(table_name):
-            continue
-        existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
-        if "author_id" not in existing_cols:
+    """Safely upgrade existing MVP tables with author_id and nullable request.course_id."""
+    try:
+        inspector = inspect(engine)
+        for table_name in ("contribution", "request"):
+            if not inspector.has_table(table_name):
+                continue
+            existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
+            if "author_id" not in existing_cols:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE {table_name} ADD COLUMN author_id INTEGER REFERENCES app_user(id) ON DELETE SET NULL"
+                        )
+                    )
+        # Allow request.course_id to be NULL on PostgreSQL for general New Course requests
+        if not settings.is_sqlite and inspector.has_table("request"):
             with engine.begin() as conn:
                 conn.execute(
-                    text(
-                        f"ALTER TABLE {table_name} ADD COLUMN author_id INTEGER REFERENCES app_user(id) ON DELETE SET NULL"
-                    )
+                    text("ALTER TABLE request ALTER COLUMN course_id DROP NOT NULL")
                 )
+    except Exception as exc:
+        print(f"[PassDown] Schema auto-upgrade notice: {exc}")
 
 
 def init_db() -> None:
