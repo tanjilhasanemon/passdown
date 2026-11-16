@@ -406,7 +406,12 @@ export function CourseListPage() {
 
           {/* Course Directory Results */}
           {loading ? (
-            <div className="empty-state">Loading course directory...</div>
+            <div className="skeleton-stack" aria-busy="true">
+              <div className="skeleton-line" style={{ width: "30%" }} />
+              <div className="skeleton-line" style={{ width: "100%" }} />
+              <div className="skeleton-line" style={{ width: "94%" }} />
+              <div className="skeleton-line" style={{ width: "82%" }} />
+            </div>
           ) : error ? (
             <div className="empty-state" style={{ borderColor: "var(--danger)" }}>
               <p style={{ color: "var(--danger)", fontWeight: 600 }}>{error}</p>

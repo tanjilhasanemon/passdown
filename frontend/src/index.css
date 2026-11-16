@@ -1031,3 +1031,26 @@ code,
   border-radius: 10px;
   box-shadow: var(--shadow-card);
 }
+
+@keyframes passdown-shimmer {
+  0% { opacity: 0.45; }
+  50% { opacity: 0.85; }
+  100% { opacity: 0.45; }
+}
+
+.skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+}
+
+.skeleton-line {
+  height: 16px;
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  animation: passdown-shimmer 1.3s ease-in-out infinite;
+}
