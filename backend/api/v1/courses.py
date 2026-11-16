@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Query, Response, Security, status
+from fastapi import APIRouter, Depends, Query, Request, Response, Security, status
 from sqlalchemy.orm import Session
 
+from core.audit import record_audit
 from core.database import get_db
 from dependencies.auth import get_current_user
 from models.app_user import AppUser
@@ -36,10 +37,19 @@ def get_course(
 @router.post("", response_model=CourseRead, status_code=status.HTTP_201_CREATED)
 def create_course(
     data: CourseCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    _current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
+    current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
 ) -> CourseRead:
     course = CourseService.create_course(db, data)
+    record_audit(
+        db,
+        action="course_created",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details=f"{course.code} — {course.title}",
+        request=request,
+    )
     return CourseRead.model_validate(course)
 
 
@@ -47,18 +57,38 @@ def create_course(
 def update_course(
     course_id: int,
     data: CourseUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
+    current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
 ) -> CourseRead:
     course = CourseService.update_course(db, course_id, data)
+    record_audit(
+        db,
+        action="course_updated",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details=f"{course.code} — {course.title}",
+        request=request,
+    )
     return CourseRead.model_validate(course)
 
 
 @router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_course(
     course_id: int,
+    request: Request,
     db: Session = Depends(get_db),
-    _current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
+    current_user: AppUser = Security(get_current_user, scopes=["courses:write"]),
 ) -> Response:
+    course = CourseService.get_course(db, course_id)
+    details = f"{course.code} — {course.title}"
     CourseService.delete_course(db, course_id)
+    record_audit(
+        db,
+        action="course_deleted",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details=details,
+        request=request,
+    )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

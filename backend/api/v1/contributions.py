@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Query, Response, Security, status
+from fastapi import APIRouter, Depends, Query, Request, Response, Security, status
 from sqlalchemy.orm import Session
 
+from core.audit import record_audit
 from core.database import get_db
 from dependencies.auth import get_current_user
 from models.app_user import AppUser
@@ -47,11 +48,20 @@ def list_course_contributions(
 def create_contribution(
     course_id: int,
     data: ContributionCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: AppUser = Security(get_current_user, scopes=["contributions:write"]),
 ) -> ContributionRead:
     contribution = ContributionService.create_contribution(
         db, course_id=course_id, data=data, current_user=current_user
+    )
+    record_audit(
+        db,
+        action="contribution_submitted",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details=f"{contribution.title}",
+        request=request,
     )
     return ContributionRead.model_validate(contribution)
 
@@ -104,6 +114,7 @@ def get_contribution(
 def update_contribution(
     contribution_id: int,
     data: ContributionUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: AppUser = Security(get_current_user, scopes=["contributions:write"]),
 ) -> ContributionRead:
@@ -112,6 +123,14 @@ def update_contribution(
         contribution_id=contribution_id,
         data=data,
         current_user=current_user,
+    )
+    record_audit(
+        db,
+        action="contribution_updated",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details=f"{contribution.title}",
+        request=request,
     )
     return ContributionRead.model_validate(contribution)
 
@@ -123,13 +142,22 @@ def update_contribution(
 def update_contribution_status(
     contribution_id: int,
     data: ContributionStatusUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    _current_user: AppUser = Security(
+    current_user: AppUser = Security(
         get_current_user, scopes=["contributions:moderate"]
     ),
 ) -> ContributionRead:
     contribution = ContributionService.update_contribution_status(
         db, contribution_id=contribution_id, data=data
+    )
+    record_audit(
+        db,
+        action=f"contribution_{data.status}",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details=f"{contribution.title}",
+        request=request,
     )
     return ContributionRead.model_validate(contribution)
 
@@ -140,10 +168,21 @@ def update_contribution_status(
 )
 def delete_contribution(
     contribution_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: AppUser = Security(get_current_user, scopes=["contributions:write"]),
 ) -> Response:
+    contribution = ContributionService.get_contribution(db, contribution_id)
+    title = contribution.title
     ContributionService.delete_contribution(
         db, contribution_id=contribution_id, current_user=current_user
+    )
+    record_audit(
+        db,
+        action="contribution_deleted",
+        user_id=current_user.id,
+        user_email=current_user.email,
+        details=title,
+        request=request,
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)

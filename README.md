@@ -84,7 +84,7 @@ Every protected endpoint validates the caller's HS256 JWT signature, reloads the
 
 ## 🗺️ Release Roadmap & Milestones
 
-**🟢 MVP Release (`v0.1.0` — Mid-Term Assessment: 30/30 Marks)**
+**🟢 MVP Release (`v0.1.0` — Core Platform Foundation)**
 - [x] Course catalog with case-insensitive search (`q`), department/level filtering, and incremental **Load More** pagination (`limit` & `offset`)
 - [x] Core Materials CRUD with resource type filtering (`slides`, `notes`, `past_paper`, `book`, `other`)
 - [x] Student Contributions CRUD with `pending` → `approved` / `rejected` review lifecycle
@@ -96,7 +96,7 @@ Every protected endpoint validates the caller's HS256 JWT signature, reloads the
 - [x] Argon2id password hashing (`argon2-cffi`) and 5-attempt / 15-minute account lockout (`429 Too Many Requests`)
 - [x] FastAPI `SecurityScopes` enforcement and service-layer item ownership verification
 - [x] Student Profile Dashboard (`/dashboard`) with summary counts, own submissions, and profile/password management
-- [x] Admin Control Center (`/admin`) with platform statistics, moderation queue, and user activation/deactivation controls
+- [x] Admin Control Center (`/admin`) with platform statistics, moderation queue, user management, live activity audit log (CSV export & purge), and security threat monitor
 - [x] HTTP security headers (`CSP`, `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`), Alembic migrations, and production deployment on Vercel + Supabase PostgreSQL
 
 ---
