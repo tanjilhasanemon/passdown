@@ -1,6 +1,4 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import {
   BookOpen,
   Compass,
@@ -9,36 +7,10 @@ import {
   HelpCircle,
   Layers,
   Lock,
-  ShieldCheck,
   UploadCloud,
 } from "lucide-react";
 
-interface HealthPayload {
-  status?: string;
-  version?: string;
-}
-
 export function AboutPage() {
-  const [health, setHealth] = useState<HealthPayload>({
-    status: "checking",
-    version: "0.2.0",
-  });
-
-  useEffect(() => {
-    let active = true;
-    axios
-      .get<HealthPayload>("/api/health")
-      .then((res) => {
-        if (active) setHealth(res.data);
-      })
-      .catch(() => {
-        if (active) setHealth({ status: "offline", version: "0.2.0" });
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
-
   return (
     <div>
       <section className="hero-banner">
@@ -134,7 +106,6 @@ export function AboutPage() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
           gap: "1rem",
-          marginBottom: "1.5rem",
         }}
       >
         <div className="card" style={{ padding: "1.35rem" }}>
@@ -162,29 +133,6 @@ export function AboutPage() {
             attempts trigger automatic 15-minute lockouts backed by an admin audit trail
             and security telemetry console.
           </p>
-        </div>
-      </div>
-
-      <div
-        className="card"
-        style={{
-          padding: "1.1rem 1.35rem",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "0.85rem",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.7rem", flexWrap: "wrap" }}>
-          <ShieldCheck size={18} style={{ color: "var(--accent-brand)" }} />
-          <span style={{ fontWeight: 700 }}>PassDown v{health.version || "0.2.0"}</span>
-          <span className={`badge ${health.status === "ok" ? "badge-success" : "badge-neutral"}`}>
-            API: {health.status === "ok" ? "Operational" : health.status}
-          </span>
-        </div>
-        <div style={{ fontSize: "0.84rem", color: "var(--text-secondary)" }}>
-          Maintained by <strong>Tanjil Hasan Emon</strong> (ID: 2331024) • IUB CSE
         </div>
       </div>
     </div>

@@ -728,6 +728,7 @@ code,
 }
 
 .btn-sm {
+  white-space: nowrap;
   padding: 0.34rem 0.65rem;
   font-size: 0.76rem;
   border-radius: 6px;
@@ -752,6 +753,7 @@ code,
 }
 
 .badge {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 0.28rem;
@@ -985,7 +987,7 @@ code,
 
 .toast-stack {
   position: fixed;
-  bottom: 1.35rem;
+  top: 4.6rem;
   right: 1.35rem;
   z-index: 80;
   display: flex;
@@ -1021,4 +1023,11 @@ code,
   .search-kbd {
     display: none;
   }
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
 }

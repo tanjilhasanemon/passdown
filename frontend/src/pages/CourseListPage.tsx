@@ -501,7 +501,7 @@ export function CourseListPage() {
                         + Core Material
                       </Link>
                     ) : (
-                      <span style={{ fontSize: "0.74rem", color: "var(--text-muted)" }}>
+                      <span style={{ fontSize: "0.74rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
                         Core · Contributions · Requests
                       </span>
                     )}
@@ -541,7 +541,7 @@ export function CourseListPage() {
                           to={`/courses/${course.id}`}
                           className="btn btn-primary btn-sm"
                         >
-                          Open Hub <ArrowRight size={13} />
+                          Open Course <ArrowRight size={13} />
                         </Link>
                       </td>
                     </tr>

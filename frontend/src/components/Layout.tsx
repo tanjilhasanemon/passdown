@@ -133,14 +133,7 @@ export function Layout({ children }: { children: ReactNode }) {
                 </NavLink>
               </>
             )}
-            <NavLink
-              to="/about"
-              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-            >
-              <Info size={15} />
-              About
-            </NavLink>
-          </nav>
+</nav>
 
           <div className="nav-actions">
             <span className="api-pill" title="FastAPI /api/health status">

@@ -226,7 +226,7 @@ export function AdminMaterialsPage() {
                 className={`filter-pill ${typeFilter === t.value ? "active" : ""}`}
                 onClick={() => setTypeFilter(t.value)}
               >
-                {t.label.split(" ")[0]}
+                {t.label}
               </button>
             ))}
           </div>
