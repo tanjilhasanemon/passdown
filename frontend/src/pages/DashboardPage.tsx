@@ -5,6 +5,8 @@ import {
   CheckCircle2,
   Clock,
   Edit3,
+  Eye,
+  EyeOff,
   ExternalLink,
   FolderPlus,
   HelpCircle,
@@ -98,6 +100,8 @@ export function DashboardPage() {
   const [displayName, setDisplayName] = useState<string>(user?.name ?? "");
   const [currentPassword, setCurrentPassword] = useState<string>("");
   const [newPassword, setNewPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [showPasswords, setShowPasswords] = useState<boolean>(false);
 
   useEffect(() => {
     if (user?.name) {
@@ -284,12 +288,17 @@ export function DashboardPage() {
     event.preventDefault();
     setSubmitting(true);
     try {
-      await meApi.changePassword({
+      if (newPassword !== confirmPassword) {
+      showToast("New password and confirmation do not match", "error");
+      return;
+    }
+    await meApi.changePassword({
         current_password: currentPassword,
         new_password: newPassword,
       });
       setCurrentPassword("");
       setNewPassword("");
+      setConfirmPassword("");
       showToast("Password changed!", "success");
     } catch (err) {
       showToast(extractErrorMessage(err), "error");

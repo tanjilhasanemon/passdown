@@ -155,7 +155,11 @@ export function AdminSecurityTab({ onUserUpdated }: AdminSecurityTabProps) {
         </div>
 
         {loading ? (
-          <div className="empty-state">Scanning IP telemetry...</div>
+          <div className="skeleton-stack" aria-busy="true">
+            <div className="skeleton-line" style={{ width: "40%" }} />
+            <div className="skeleton-line" style={{ width: "100%" }} />
+            <div className="skeleton-line" style={{ width: "88%" }} />
+          </div>
         ) : sortedIps.length === 0 ? (
           <div className="empty-state">
             No IP addresses crossed {minFailures} failures in the last {hours}h.
@@ -212,7 +216,11 @@ export function AdminSecurityTab({ onUserUpdated }: AdminSecurityTabProps) {
         <h3 style={{ margin: "0 0 0.55rem", fontSize: "0.98rem" }}>By account</h3>
 
         {loading ? (
-          <div className="empty-state">Scanning account lockouts...</div>
+          <div className="skeleton-stack" aria-busy="true">
+            <div className="skeleton-line" style={{ width: "40%" }} />
+            <div className="skeleton-line" style={{ width: "100%" }} />
+            <div className="skeleton-line" style={{ width: "88%" }} />
+          </div>
         ) : data.by_account.length === 0 ? (
           <div className="empty-state">
             No accounts crossed {minFailures} failures in the last {hours}h.

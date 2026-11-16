@@ -95,7 +95,7 @@ export function LoginPage() {
                 type="password"
                 className="form-input"
                 required
-                placeholder="••••••••"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />

@@ -58,6 +58,7 @@ export function AdminActivityTab() {
   });
 
   const [query, setQuery] = useState<string>("");
+  const [debouncedQuery, setDebouncedQuery] = useState<string>("");
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [selectedAction, setSelectedAction] = useState<string>("");
   const [dateFrom, setDateFrom] = useState<string>("");
@@ -83,7 +84,7 @@ export function AdminActivityTab() {
       if (!silent) setLoading(true);
       try {
         const res = await adminApi.getActivity({
-          q: query.trim() || undefined,
+          q: debouncedQuery || undefined,
           user_email: selectedUser || undefined,
           action: selectedAction || undefined,
           date_from: dateFrom ? new Date(dateFrom).toISOString() : undefined,
@@ -99,8 +100,13 @@ export function AdminActivityTab() {
         if (!silent) setLoading(false);
       }
     },
-    [query, selectedUser, selectedAction, dateFrom, dateTo, page, showToast]
+    [debouncedQuery, selectedUser, selectedAction, dateFrom, dateTo, page, showToast]
   );
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => window.clearTimeout(t);
+  }, [query]);
 
   useEffect(() => {
     void loadFilters();
@@ -327,7 +333,12 @@ export function AdminActivityTab() {
       </div>
 
       {loading ? (
-        <div className="empty-state">Loading audit activity...</div>
+        <div className="skeleton-stack" aria-busy="true">
+          <div className="skeleton-line" style={{ width: "35%" }} />
+          <div className="skeleton-line" style={{ width: "100%" }} />
+          <div className="skeleton-line" style={{ width: "92%" }} />
+          <div className="skeleton-line" style={{ width: "86%" }} />
+        </div>
       ) : items.length === 0 ? (
         <div className="empty-state">No audit log entries match the current filters.</div>
       ) : (
