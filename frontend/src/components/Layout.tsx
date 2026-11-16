@@ -8,6 +8,7 @@ import {
   ExternalLink,
   FolderKanban,
   GraduationCap,
+  Info,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -82,6 +83,14 @@ export function Layout({ children }: { children: ReactNode }) {
             >
               <Compass size={15} />
               <span>Catalog</span>
+            </NavLink>
+
+            <NavLink
+              to="/about"
+              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+            >
+              <Info size={15} />
+              About
             </NavLink>
 
             {isAuthenticated && (

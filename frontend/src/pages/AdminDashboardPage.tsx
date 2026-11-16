@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
+  Activity,
   BookMarked,
+  ShieldAlert,
   CheckCircle2,
   ExternalLink,
   FolderKanban,
@@ -27,6 +29,8 @@ import {
   MaterialTypeBadge,
   RequestStatusBadge,
 } from "../components/Badge";
+import { AdminActivityTab } from "../components/AdminActivityTab";
+import { AdminSecurityTab } from "../components/AdminSecurityTab";
 import { useToast } from "../components/ToastContext";
 import type {
   Contribution,
@@ -38,7 +42,7 @@ import type {
   User,
 } from "../types";
 
-type AdminTab = "moderation" | "requests" | "users";
+type AdminTab = "moderation" | "requests" | "users" | "activity" | "security";
 
 export function AdminDashboardPage() {
   const { user: currentAdmin } = useAuth();
@@ -304,6 +308,27 @@ export function AdminDashboardPage() {
           <Users size={16} />
           User Management
           <span className="badge badge-neutral">{users.length}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "activity"}
+          className={`tab-btn ${activeTab === "activity" ? "active" : ""}`}
+          onClick={() => setActiveTab("activity")}
+        >
+          <Activity size={16} />
+          Activity Log
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "security"}
+          className={`tab-btn ${activeTab === "security" ? "active" : ""}`}
+          onClick={() => setActiveTab("security")}
+        >
+          <ShieldAlert size={16} />
+          Security
         </button>
       </div>
 
@@ -639,6 +664,10 @@ export function AdminDashboardPage() {
           </table>
         </div>
       )}
+
+      {activeTab === "activity" && <AdminActivityTab />}
+
+      {activeTab === "security" && <AdminSecurityTab onUserUpdated={loadAdminData} />}
     </div>
   );
 }

@@ -177,3 +177,51 @@ export const MATERIAL_TYPES: { value: MaterialType; label: string }[] = [
   { value: "book", label: "Reference Book" },
   { value: "other", label: "Other Resource" },
 ];
+
+export interface AuditLogItem {
+  id: number;
+  user_id: number | null;
+  user_email: string | null;
+  action: string;
+  details: string | null;
+  ip_address: string | null;
+  browser: string | null;
+  created_at: string;
+}
+
+export interface AuditActivityFilters {
+  users: string[];
+  actions: string[];
+}
+
+export interface PurgeActivityResult {
+  deleted_count: number;
+  older_than_days: number;
+}
+
+export interface SecurityIpSummary {
+  ip_address: string;
+  failures: number;
+  events: string[];
+  emails_tried: string[];
+  browser: string | null;
+  last_seen: string;
+}
+
+export interface SecurityAccountSummary {
+  user_id: number | null;
+  email: string;
+  name: string | null;
+  status: "active" | "locked" | "deactivated" | "unknown";
+  failures: number;
+  from_addresses: string[];
+  browser: string | null;
+  last_seen: string;
+}
+
+export interface SecurityOverview {
+  min_failures: number;
+  hours: number;
+  by_ip: SecurityIpSummary[];
+  by_account: SecurityAccountSummary[];
+}

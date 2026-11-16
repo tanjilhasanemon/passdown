@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { RoleRoute } from "./auth/RoleRoute";
 import { Layout } from "./components/Layout";
 import { ToastProvider } from "./components/ToastContext";
+import { AboutPage } from "./pages/AboutPage";
 import { AdminCoursesPage } from "./pages/AdminCoursesPage";
 import { AdminDashboardPage } from "./pages/AdminDashboardPage";
 import { AdminMaterialsPage } from "./pages/AdminMaterialsPage";
@@ -23,6 +24,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<CourseListPage />} />
               <Route path="/courses/:id" element={<CourseDetailPage />} />
+              <Route path="/about" element={<AboutPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
 
