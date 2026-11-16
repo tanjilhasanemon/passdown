@@ -1054,3 +1054,26 @@ code,
   background: var(--bg-secondary);
   animation: passdown-shimmer 1.3s ease-in-out infinite;
 }
+
+/* nav-fit-v2 */
+.navbar-inner {
+  gap: 0.6rem;
+}
+.nav-links {
+  gap: 0.12rem;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+.nav-link {
+  padding: 0.36rem 0.56rem;
+  font-size: 0.79rem;
+  gap: 0.34rem;
+}
+.brand-subtitle {
+  display: none;
+}
+@media (max-width: 1180px) {
+  .api-pill {
+    display: none;
+  }
+}
