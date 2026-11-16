@@ -84,16 +84,7 @@ export function Layout({ children }: { children: ReactNode }) {
               <Compass size={15} />
               <span>Catalog</span>
             </NavLink>
-
-            <NavLink
-              to="/about"
-              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-            >
-              <Info size={15} />
-              About
-            </NavLink>
-
-            {isAuthenticated && (
+{isAuthenticated && (
               <NavLink
                 to="/dashboard"
                 className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
@@ -142,6 +133,13 @@ export function Layout({ children }: { children: ReactNode }) {
                 </NavLink>
               </>
             )}
+            <NavLink
+              to="/about"
+              className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+            >
+              <Info size={15} />
+              About
+            </NavLink>
           </nav>
 
           <div className="nav-actions">
@@ -213,7 +211,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
       <footer className="app-footer">
         <div>
-          <strong>PassDown v0.2.0</strong> · CSE 309 Web Applications &amp; Internet ·
+          <strong>PassDown v0.2.0</strong> · IUB Course Archive ·
           Independent University, Bangladesh (IUB)
         </div>
         <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>

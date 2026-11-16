@@ -144,7 +144,7 @@ code,
 
 .navbar-inner {
   width: 100%;
-  max-width: 1680px;
+  max-width: 100%;
   min-height: 62px;
   margin: 0 auto;
   padding: 0.5rem clamp(1rem, 2.5vw, 2.5rem);
@@ -260,9 +260,9 @@ code,
    ========================================================================== */
 .main-container {
   width: 100%;
-  max-width: 1680px;
+  max-width: 100%;
   margin: 0 auto;
-  padding: 1.75rem clamp(1.25rem, 3.2vw, 3rem) 4rem;
+  padding: 1.5rem clamp(1rem, 1.5vw, 1.75rem) 3.5rem;
 }
 
 /* Editorial Top Masthead (Replaces the boxed purple banner) */
@@ -970,9 +970,9 @@ code,
 
 .app-footer {
   width: 100%;
-  max-width: 1680px;
+  max-width: 100%;
   margin: 2rem auto 0;
-  padding: 1.25rem clamp(1.25rem, 3.2vw, 3rem);
+  padding: 1.15rem clamp(1rem, 1.5vw, 1.75rem);
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;

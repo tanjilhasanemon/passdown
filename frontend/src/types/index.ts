@@ -186,6 +186,7 @@ export interface AuditLogItem {
   details: string | null;
   ip_address: string | null;
   browser: string | null;
+  user_agent?: string | null;
   created_at: string;
 }
 
@@ -205,6 +206,7 @@ export interface SecurityIpSummary {
   events: string[];
   emails_tried: string[];
   browser: string | null;
+  user_agent?: string | null;
   last_seen: string;
 }
 
@@ -216,6 +218,7 @@ export interface SecurityAccountSummary {
   failures: number;
   from_addresses: string[];
   browser: string | null;
+  user_agent?: string | null;
   last_seen: string;
 }
 
