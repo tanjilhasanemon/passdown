@@ -450,7 +450,7 @@ export function AdminDashboardPage() {
                             display: "flex",
                             justifyContent: "flex-end",
                             gap: "0.4rem",
-                            flexWrap: "wrap",
+                            flexWrap: "nowrap",
                           }}
                         >
                           {item.status !== "approved" && (
