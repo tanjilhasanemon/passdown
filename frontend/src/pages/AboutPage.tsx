@@ -53,7 +53,7 @@ export function AboutPage() {
         >
           <div style={{ maxWidth: "780px" }}>
             <span className="hero-eyebrow">
-              <BookOpen size={14} /> Archival Mission • CSE 309 Web Applications &amp; Internet
+              <BookOpen size={14} /> Archival Mission • IUB Course Archive
             </span>
             <h1 className="hero-title">About PassDown</h1>
             <p className="hero-subtitle">

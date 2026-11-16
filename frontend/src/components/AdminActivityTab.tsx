@@ -364,7 +364,7 @@ export function AdminActivityTab() {
                     {row.ip_address || "—"}
                   </td>
                   <td style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                    {row.browser || "—"}
+                    {row.browser || row.user_agent || "—"}
                   </td>
                 </tr>
               ))}
