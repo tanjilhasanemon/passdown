@@ -15,9 +15,6 @@ from dependencies.auth import get_current_user
 from models.app_user import AppUser
 from models.audit_log import AuditLog
 from models.contribution import Contribution
-from models.core_material import CoreMaterial
-from models.course import Course
-from models.material_request import MaterialRequest
 from models.study_group import StudyGroup, StudyGroupMember, StudyGroupResource
 from models.user_session import UserSession
 

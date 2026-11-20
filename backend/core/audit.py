@@ -58,13 +58,17 @@ def record_audit(
     db: Session,
     *,
     action: str,
-    user_email: str,
+    user: object | None = None,
+    user_email: str | None = None,
     user_id: int | None = None,
     details: str | None = None,
     request: Request | None = None,
     is_security_event: bool = False,
 ) -> None:
     """Persist an activity or security audit log entry safely without breaking the primary request."""
+    if user is not None:
+        user_id = user_id or getattr(user, 'id', None)
+        user_email = user_email or getattr(user, 'email', None)
     try:
         raw_ua = request.headers.get("user-agent") if request else None
         entry = AuditLog(

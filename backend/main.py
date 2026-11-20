@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.v1 import admin, admin_ops, auth, contributions, core_materials, courses, groups, me, requests
 from core.config import settings
+from api.v1.admin_ops import ensure_ban_reason_column
 from core.database import init_db
 from scripts.seed_final_demo import ensure_final_demo_data
 
@@ -19,6 +20,7 @@ from scripts.seed_final_demo import ensure_final_demo_data
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     init_db()
+    ensure_ban_reason_column()
     try:
         ensure_final_demo_data()
     except Exception:
@@ -79,6 +81,7 @@ app.include_router(requests.router, prefix=settings.api_v1_prefix)
 @app.get("/api/health", tags=["System"])
 def health() -> dict[str, str]:
     init_db()
+    ensure_ban_reason_column()
     return {"status": "ok"}
 
 
