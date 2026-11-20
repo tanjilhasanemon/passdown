@@ -95,6 +95,8 @@ export function AdminDashboardPage() {
     } catch (err) {
       showToastRef.current(extractErrorMessage(err), "error");
     } finally {
+      const ext = await adminApi.getExtendedOverview().catch(() => ({ banned_users: 0, groups: 0, new_users_7d: 0, new_records_7d: 0 }));
+      setExtStats(ext);
       setLoading(false);
     }
   }, [statusFilter, courseFilter]);
@@ -274,6 +276,21 @@ export function AdminDashboardPage() {
             <HelpCircle size={20} />
           </span>
         </div>
+      </div>
+
+      <div style={{ display: "flex", gap: "0.65rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1rem" }}>
+        <span className="badge badge-danger">Banned Users: {extStats.banned_users}</span>
+        <span className="badge badge-info">Study Groups: {extStats.groups}</span>
+        <span className="badge badge-success">New Users (7d): +{extStats.new_users_7d}</span>
+        <span className="badge badge-neutral">New Records (7d): +{extStats.new_records_7d}</span>
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          style={{ marginLeft: "auto" }}
+          onClick={() => void adminApi.exportContributionsCsv({ status: statusFilter || undefined, course_id: courseFilter })}
+        >
+          Export Filtered Records CSV
+        </button>
       </div>
 
       <div className="tabs-bar" role="tablist">

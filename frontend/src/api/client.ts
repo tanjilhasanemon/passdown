@@ -86,10 +86,34 @@ apiClient.interceptors.response.use(
   },
   async (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
-      const requestUrl = error.config?.url ?? "";
-      if (!requestUrl.includes("/auth/login")) {
-        const hadToken = Boolean(getStoredToken());
+      const origConfig = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
+      const requestUrl = origConfig?.url ?? "";
+      const isAuthRoute = requestUrl.includes("/auth/login") || requestUrl.includes("/auth/refresh");
+      if (!isAuthRoute && origConfig && !origConfig._retry) {
+        const refreshTok = getStoredRefreshToken();
+        if (refreshTok) {
+          origConfig._retry = true;
+          try {
+            const refreshRes = await axios.post<{ access_token: string; refresh_token?: string }>(
+              "/api/v1/auth/refresh",
+              { refresh_token: refreshTok }
+            );
+            setStoredToken(refreshRes.data.access_token);
+            if (refreshRes.data.refresh_token) {
+              setStoredRefreshToken(refreshRes.data.refresh_token);
+            }
+            responseCache.clear();
+            if (origConfig.headers) {
+              origConfig.headers.Authorization = `Bearer ${refreshRes.data.access_token}`;
+            }
+            return apiClient.request(origConfig);
+          } catch {
+            // Fall through to full sign-out
+          }
+        }
+        const hadToken = Boolean(getStoredToken() || getStoredRefreshToken());
         setStoredToken(null);
+        setStoredRefreshToken(null);
         responseCache.clear();
         if (hadToken) {
           window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));

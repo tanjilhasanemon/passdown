@@ -55,7 +55,7 @@ export function Layout({ children }: { children: ReactNode }) {
       }
     };
     void checkStatus();
-    const timer = window.setInterval(checkStatus, 15000);
+    const timer = window.setInterval(checkStatus, 60000);
     return () => {
       active = false;
       window.clearInterval(timer);
@@ -86,13 +86,22 @@ export function Layout({ children }: { children: ReactNode }) {
               <span>Catalog</span>
             </NavLink>
 {isAuthenticated && (
-              <NavLink
-                to="/dashboard"
-                className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
-              >
-                <LayoutDashboard size={15} />
-                <span>Workspace</span>
-              </NavLink>
+              <>
+                <NavLink
+                  to="/dashboard"
+                  className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+                >
+                  <LayoutDashboard size={15} />
+                  Workspace
+                </NavLink>
+                <NavLink
+                  to="/groups"
+                  className={({ isActive }) => `nav-link ${isActive ? "active" : ""}`}
+                >
+                  <Users size={15} />
+                  Groups
+                </NavLink>
+              </>
             )}
 
             {isAdmin && (
