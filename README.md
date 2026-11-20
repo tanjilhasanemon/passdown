@@ -105,8 +105,8 @@ Every protected endpoint validates the caller's HS256 JWT signature, reloads the
 
 | Role | Email | Password | Capabilities |
 |---|---|---|---|
-| **Admin** | `admin@passdown.edu` | `Admin1234` | Full access to `/admin` (stats, moderation queue, user activation), `/admin/courses`, `/admin/materials`, and `/dashboard` |
-| **Student** | `student@passdown.edu` | `Student1234` | Submit contributions & requests, edit/delete own items, and manage `/dashboard` |
+| **Admin** | `admin@passdown.edu` | `[provided in submission form & PDF report]` | Full access to `/admin` (stats, moderation queue, user activation), `/admin/courses`, `/admin/materials`, and `/dashboard` |
+| **Student** | `student@passdown.edu` | `[provided in submission form & PDF report]` | Submit contributions & requests, edit/delete own items, and manage `/dashboard` |
 
 ---
 
@@ -169,3 +169,24 @@ Distributed under the MIT License. See [`LICENSE`](./LICENSE) for details.
 Built by **Tanjil Hasan Emon** (ID: 2331024) · **CSE 309: Web Applications & Internet** · Independent University, Bangladesh (IUB)
 
 </div>
+
+## Test Accounts & Shared Study Group (Instructor Reference)
+
+> **Security Policy:** Account passwords are **never** stored in this repository or README. All demo passwords are provided exclusively in the final submission form and PDF report.
+
+### Demo Accounts (2 Admins & 3 Normal Users)
+
+| Account Email (User ID) | Display Name | Role |
+| :--- | :--- | :--- |
+| `admin@passdown.edu` | PassDown Admin | `admin` |
+| `admin2@passdown.edu` | Academic Moderator | `admin` |
+| `student@passdown.edu` | Rafiqul Islam | `student` (user) |
+| `student2@passdown.edu` | Sadia Rahman | `student` (user) |
+| `student3@passdown.edu` | Mehedi Hasan | `student` (user) |
+
+### Shared Study Group with Mixed Permissions
+
+- **Group Name:** `CSE309 Final Defence Study Group` (`CSE309`)
+- **Owner:** `student@passdown.edu` (Rafiqul Islam) — Full control (rename, delete, manage members, create/edit/assign resources)
+- **Member 1:** `student2@passdown.edu` (Sadia Rahman) — `can_create: Yes`, `can_edit: Yes`, `can_assign: No`
+- **Member 2:** `student3@passdown.edu` (Mehedi Hasan) — `can_create: No`, `can_edit: No`, `can_assign: Yes`
