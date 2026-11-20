@@ -16,3 +16,5 @@ __all__ = [
 ]
 
 from models.user_session import UserSession
+
+from models.study_group import StudyGroup, StudyGroupMember, StudyGroupResource

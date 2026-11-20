@@ -12,6 +12,7 @@ import { AdminModerationPage } from "./pages/AdminModerationPage";
 import { CourseDetailPage } from "./pages/CourseDetailPage";
 import { CourseListPage } from "./pages/CourseListPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { GroupsPage } from "./pages/GroupsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 
@@ -27,6 +28,15 @@ export default function App() {
               <Route path="/about" element={<AboutPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+
+              <Route
+                path="/groups"
+                element={
+                  <ProtectedRoute>
+                    <GroupsPage />
+                  </ProtectedRoute>
+                }
+              />
 
               <Route
                 path="/dashboard"

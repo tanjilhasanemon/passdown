@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   Sun,
   UserPlus,
+  Users,
 } from "lucide-react";
 import { contributionsApi } from "../api/contributions";
 import { useAuth } from "../auth/AuthContext";
