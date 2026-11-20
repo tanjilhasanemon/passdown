@@ -240,3 +240,54 @@ export interface SecurityOverview {
   by_ip: SecurityIpSummary[];
   by_account: SecurityAccountSummary[];
 }
+
+export interface GroupMember {
+  id: number;
+  user_id: number;
+  name: string;
+  email: string;
+  can_create: boolean;
+  can_edit: boolean;
+  can_assign: boolean;
+  added_at: string;
+}
+
+export interface GroupResource {
+  id: number;
+  group_id: number;
+  title: string;
+  url: string;
+  resource_type: string;
+  notes: string | null;
+  status: string;
+  created_by_id: number;
+  created_by_name: string;
+  assigned_to_id: number | null;
+  assigned_to_name: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudyGroupSummary {
+  id: number;
+  name: string;
+  description: string | null;
+  course_code: string | null;
+  owner_id: number;
+  owner_name: string;
+  owner_email: string;
+  member_count: number;
+  resource_count: number;
+  is_owner: boolean;
+  my_permissions: {
+    can_create: boolean;
+    can_edit: boolean;
+    can_assign: boolean;
+  };
+  created_at: string;
+}
+
+export interface StudyGroupDetail extends StudyGroupSummary {
+  members: GroupMember[];
+  resources: GroupResource[];
+}
