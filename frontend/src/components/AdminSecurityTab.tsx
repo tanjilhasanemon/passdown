@@ -68,7 +68,7 @@ export function AdminSecurityTab({ onUserUpdated }: AdminSecurityTabProps) {
     sortAsc ? a.failures - b.failures : b.failures - a.failures
   );
 
-  const lockedCount = data.by_account.filter((a) => a.status === "locked").length;
+  const lockedCount = data.by_account.filter((a) => a.status.toLowerCase() === "locked").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.15rem" }}>
@@ -188,7 +188,7 @@ export function AdminSecurityTab({ onUserUpdated }: AdminSecurityTabProps) {
                     </td>
                     <td>
                       <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
-                        {row.events.map((ev) => (
+                        {((row as any).events ?? String((row as any).what_happened || "login failed").split(", ")).map((ev: string) => (
                           <span key={ev} className="badge badge-warning">
                             {ev}
                           </span>
@@ -251,15 +251,15 @@ export function AdminSecurityTab({ onUserUpdated }: AdminSecurityTabProps) {
                       )}
                     </td>
                     <td>
-                      {acc.status === "locked" ? (
+                      {acc.status.toLowerCase() === "locked" ? (
                         <span className="badge badge-warning">
                           <Lock size={12} /> Locked
                         </span>
-                      ) : acc.status === "deactivated" ? (
+                      ) : acc.status.toLowerCase() === "deactivated" ? (
                         <span className="badge badge-danger">
                           <AlertTriangle size={12} /> Deactivated
                         </span>
-                      ) : acc.status === "active" ? (
+                      ) : acc.status.toLowerCase() === "active" ? (
                         <span className="badge badge-success">Active</span>
                       ) : (
                         <span className="badge badge-neutral">Unregistered</span>
@@ -278,7 +278,7 @@ export function AdminSecurityTab({ onUserUpdated }: AdminSecurityTabProps) {
                       {new Date(acc.last_seen).toISOString().replace("T", " ").slice(0, 19)}
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      {acc.user_id && acc.status === "locked" ? (
+                      {acc.user_id && acc.status.toLowerCase() === "locked" ? (
                         <button
                           type="button"
                           className="btn btn-success btn-sm"

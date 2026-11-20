@@ -101,7 +101,7 @@ class AuditRepository:
             db.scalars(
                 select(AuditLog)
                 .where(
-                    AuditLog.is_security_event.is_(True),
+                    or_(AuditLog.is_security_event.is_(True), AuditLog.action.in_(["login_failed", "login_locked", "password_change_failed"])),
                     AuditLog.created_at >= cutoff,
                 )
                 .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
