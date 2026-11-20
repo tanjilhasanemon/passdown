@@ -11,7 +11,7 @@ export function LoginPage() {
   const { showToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const fromPath = (location.state as { from?: string } | null)?.from;
+  const from = (location.state as { from?: string } | null)?.from || "/dashboard";
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -19,19 +19,19 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const performLogin = async (targetEmail: string, targetPass: string) => {
+  const performLogin = async (loginEmail: string, loginPassword: string) => {
     setSubmitting(true);
     setErrorMsg(null);
     try {
-      const profile = await login(targetEmail, targetPass);
-      showToast(`Welcome back, ${profile.name}!`, "success");
-      if (fromPath) {
-        navigate(fromPath, { replace: true });
-      } else if (profile.role === "admin") {
-        navigate("/admin", { replace: true });
-      } else {
-        navigate("/dashboard", { replace: true });
-      }
+      const loggedInUser = await login(loginEmail, loginPassword);
+      showToast(`Welcome back, ${loggedInUser.name}!`, "success");
+      const target =
+        loggedInUser.role === "admin"
+          ? "/admin"
+          : from && from !== "/login" && !from.startsWith("/admin")
+            ? from
+            : "/dashboard";
+      navigate(target, { replace: true });
     } catch (err) {
       const msg = extractErrorMessage(err);
       setErrorMsg(msg);
@@ -47,7 +47,7 @@ export function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: "480px", margin: "1.5rem auto" }}>
+    <div style={{ maxWidth: "460px", margin: "1.5rem auto" }}>
       <div className="glass-card" style={{ padding: "2rem" }}>
         <div>
           <span className="hero-eyebrow">
@@ -57,15 +57,15 @@ export function LoginPage() {
             Sign in to PassDown
           </h1>
           <p style={{ margin: "0 0 1.4rem", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-            Log in with your email and password to contribute materials, post
-            requests, or manage your dashboard.
+            Log in with your email and password to contribute materials, post requests, or
+            manage your dashboard.
           </p>
 
           {errorMsg && (
             <div
               style={{
                 padding: "0.75rem 1rem",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 background: "var(--danger-bg)",
                 color: "var(--danger)",
                 fontSize: "0.86rem",
@@ -80,12 +80,11 @@ export function LoginPage() {
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Email Address *</label>
-              <div style={{ position: "relative", width: "100%" }}>
-                <input
+              <input
                 type="email"
                 className="form-input"
                 required
-                placeholder="you@iub.edu.bd"
+                placeholder="e.g. name@domain.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -93,15 +92,16 @@ export function LoginPage() {
 
             <div className="form-group">
               <label className="form-label">Password *</label>
-              <input
-                type={showPassword ? "text" : "password"}
+              <div style={{ position: "relative", width: "100%" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="form-input"
                   style={{ width: "100%", boxSizing: "border-box", paddingRight: "2.6rem" }}
-                className="form-input"
-                required
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+                  required
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
@@ -110,7 +110,6 @@ export function LoginPage() {
                   style={{
                     position: "absolute",
                     right: "0.65rem",
-                    zIndex: 2,
                     top: "50%",
                     transform: "translateY(-50%)",
                     background: "transparent",
@@ -120,6 +119,7 @@ export function LoginPage() {
                     display: "inline-flex",
                     alignItems: "center",
                     padding: "0.25rem",
+                    zIndex: 2,
                   }}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -131,17 +131,16 @@ export function LoginPage() {
               type="submit"
               className="btn btn-primary"
               disabled={submitting}
-              style={{ width: "100%", marginTop: "0.5rem" }}
+              style={{ width: "100%", marginTop: "0.4rem" }}
             >
               <LogIn size={16} />
-              {submitting ? "Signing in..." : "Sign In"}
+              {submitting ? "Signing In..." : "Sign In"}
             </button>
           </form>
 
-          {/* Quick Demo Credentials for Viva Evaluation */}
           <div
             style={{
-              marginTop: "1.4rem",
+              marginTop: "1.35rem",
               paddingTop: "1.1rem",
               borderTop: "1px solid var(--border-subtle)",
             }}
