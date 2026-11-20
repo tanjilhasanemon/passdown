@@ -1104,3 +1104,74 @@ code,
   color: var(--accent-brand);
   border: 1px solid var(--border-subtle);
 }
+
+/* smart-loaders-v1 */
+.top-progress-track {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 100;
+  background: transparent;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.top-progress-bar {
+  height: 100%;
+  width: 42%;
+  background: linear-gradient(90deg, transparent, var(--accent-brand), transparent);
+  animation: passdown-indeterminate 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes passdown-indeterminate {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(340%); }
+}
+
+.skeleton-line {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    var(--border-subtle) 50%,
+    var(--bg-secondary) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: passdown-sweep 1.35s ease-in-out infinite !important;
+}
+
+@keyframes passdown-sweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.session-loader-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  background: var(--bg-primary);
+}
+
+.session-loader-ring {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--border-subtle);
+  border-top-color: var(--accent-brand);
+  animation: passdown-spin 0.75s linear infinite;
+}
+
+.session-loader-label {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+@keyframes passdown-spin {
+  to { transform: rotate(360deg); }
+}

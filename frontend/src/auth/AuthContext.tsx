@@ -116,8 +116,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }}
     >
       {loading ? (
-        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
-          Restoring session...
+        <div className="session-loader-screen">
+          <div className="session-loader-ring" />
+          <span className="session-loader-label">Loading PassDown…</span>
         </div>
       ) : (
         children
