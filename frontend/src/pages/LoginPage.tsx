@@ -80,7 +80,7 @@ export function LoginPage() {
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Email Address *</label>
-              <div style={{ position: "relative" }}>
+              <div style={{ position: "relative", width: "100%" }}>
                 <input
                 type="email"
                 className="form-input"
@@ -95,7 +95,7 @@ export function LoginPage() {
               <label className="form-label">Password *</label>
               <input
                 type={showPassword ? "text" : "password"}
-                  style={{ paddingRight: "2.6rem" }}
+                  style={{ width: "100%", boxSizing: "border-box", paddingRight: "2.6rem" }}
                 className="form-input"
                 required
                 placeholder="Enter your password"
@@ -109,7 +109,8 @@ export function LoginPage() {
                   title={showPassword ? "Hide password" : "Show password"}
                   style={{
                     position: "absolute",
-                    right: "0.55rem",
+                    right: "0.65rem",
+                    zIndex: 2,
                     top: "50%",
                     transform: "translateY(-50%)",
                     background: "transparent",
