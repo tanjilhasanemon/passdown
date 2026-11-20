@@ -22,6 +22,8 @@ export function GroupsPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<StudyGroupDetail | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [detailLoading, setDetailLoading] = useState<boolean>(false);
+  const [creating, setCreating] = useState<boolean>(false);
 
   // Create Group Modal
   const [showCreate, setShowCreate] = useState(false);
@@ -45,43 +47,55 @@ export function GroupsPage() {
   const [resType, setResType] = useState("notes");
   const [resNotes, setResNotes] = useState("");
 
-  const loadGroups = useCallback(async () => {
-    setLoading(true);
-    try {
-      const list = await groupsApi.list();
-      setGroups(list);
-      if (list.length > 0) {
-        const nextId = selectedId && list.some((g) => g.id === selectedId) ? selectedId : list[0].id;
-        setSelectedId(nextId);
-        const det = await groupsApi.getDetail(nextId);
-        setDetail(det);
-      } else {
-        setSelectedId(null);
-        setDetail(null);
+  const loadGroups = useCallback(
+    async (preferredId?: number | null) => {
+      setLoading(true);
+      try {
+        const list = await groupsApi.list();
+        setGroups(list);
+        if (list.length > 0) {
+          const nextId =
+            preferredId && list.some((g) => g.id === preferredId)
+              ? preferredId
+              : list[0].id;
+          setSelectedId(nextId);
+          const det = await groupsApi.getDetail(nextId);
+          setDetail(det);
+        } else {
+          setSelectedId(null);
+          setDetail(null);
+        }
+      } catch (err) {
+        showToast(extractErrorMessage(err), "error");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      showToast(extractErrorMessage(err), "error");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedId, showToast]);
+    },
+    [showToast]
+  );
 
   useEffect(() => {
     void loadGroups();
   }, [loadGroups]);
 
   const selectGroup = async (id: number) => {
+    if (id === selectedId && detail?.id === id) return;
     setSelectedId(id);
+    setDetailLoading(true);
     try {
       const det = await groupsApi.getDetail(id);
       setDetail(det);
     } catch (err) {
       showToast(extractErrorMessage(err), "error");
+    } finally {
+      setDetailLoading(false);
     }
   };
 
   const handleCreateGroup = async (e: FormEvent) => {
     e.preventDefault();
+    if (creating) return;
+    setCreating(true);
     try {
       const created = await groupsApi.create({
         name: newName,
@@ -95,9 +109,12 @@ export function GroupsPage() {
       setSelectedId(created.id);
       setDetail(created);
       showToast(`Created study group "${created.name}"`, "success");
-      await loadGroups();
+      const list = await groupsApi.list();
+      setGroups(list);
     } catch (err) {
       showToast(extractErrorMessage(err), "error");
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -109,7 +126,8 @@ export function GroupsPage() {
       setDetail(updated);
       setShowRename(false);
       showToast("Study group renamed", "success");
-      await loadGroups();
+      const list = await groupsApi.list();
+      setGroups(list);
     } catch (err) {
       showToast(extractErrorMessage(err), "error");
     }
@@ -287,7 +305,13 @@ export function GroupsPage() {
           </aside>
 
           {/* Active Group Detail */}
-          {detail && (
+          {detailLoading ? (
+            <div className="skeleton-stack" aria-busy="true">
+              <div className="skeleton-line" style={{ width: "40%" }} />
+              <div className="skeleton-line" style={{ width: "100%" }} />
+              <div className="skeleton-line" style={{ width: "85%" }} />
+            </div>
+          ) : detail && (
             <div style={{ display: "flex", flexDirection: "column", gap: "1.15rem" }}>
               <div className="card" style={{ padding: "1.2rem" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
@@ -578,7 +602,7 @@ export function GroupsPage() {
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
               <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
-              <button type="submit" className="btn btn-primary">Create Group</button>
+              <button type="submit" className="btn btn-primary" disabled={creating}>{creating ? "Creating..." : "Create Group"}</button>
             </div>
           </form>
         </Modal>
