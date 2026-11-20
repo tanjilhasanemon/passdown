@@ -507,7 +507,7 @@ export function CourseListPage() {
                       </Link>
                     ) : (
                       <span style={{ fontSize: "0.74rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                        Core · Contributions · Requests
+                        Core · Notes · Requests
                       </span>
                     )}
                     <Link

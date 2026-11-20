@@ -114,16 +114,18 @@ export function DashboardPage() {
   const loadDashboardData = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryRes, contribRes, reqRes, coursesRes] = await Promise.allSettled([
+      const [summaryRes, contribRes, reqRes, coursesRes, sessRes] = await Promise.allSettled([
         meApi.getSummary(),
         meApi.listContributions({ status: contribFilter, limit: 100 }),
         meApi.listRequests({ status: requestFilter, limit: 100 }),
         coursesApi.list({ limit: 100 }),
+        meApi.listSessions(),
       ]);
 
       if (summaryRes.status === "fulfilled") setSummary(summaryRes.value);
       if (contribRes.status === "fulfilled") setContributions(contribRes.value.items);
       if (reqRes.status === "fulfilled") setRequests(reqRes.value.items);
+      if (sessRes.status === "fulfilled") setSessions(sessRes.value);
       if (coursesRes.status === "fulfilled") {
         setCourses(coursesRes.value.items);
         if (coursesRes.value.items.length > 0) {
@@ -809,7 +811,7 @@ export function DashboardPage() {
               <div className="form-group">
                 <label className="form-label">Current Password *</label>
                 <input
-                  type="password"
+                  type={showPasswords ? "text" : "password"}
                   className="form-input"
                   required
                   value={currentPassword}
@@ -820,7 +822,7 @@ export function DashboardPage() {
               <div className="form-group">
                 <label className="form-label">New Password *</label>
                 <input
-                  type="password"
+                  type={showPasswords ? "text" : "password"}
                   className="form-input"
                   required
                   minLength={8}
@@ -828,6 +830,29 @@ export function DashboardPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Confirm New Password *</label>
+                <input
+                  type={showPasswords ? "text" : "password"}
+                  className="form-input"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  minLength={8}
+                  required
+                  autoComplete="new-password"
+                  placeholder="Re-enter new password"
+                />
+              </div>
+              <div style={{ marginBottom: "0.85rem" }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setShowPasswords((v) => !v)}
+                >
+                  {showPasswords ? <EyeOff size={14} /> : <Eye size={14} />}
+                  {showPasswords ? "Hide Passwords" : "Show Passwords"}
+                </button>
               </div>
 
               <button
