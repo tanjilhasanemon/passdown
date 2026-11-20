@@ -41,6 +41,18 @@ export interface RegisterPayload {
 export interface TokenResponse {
   access_token: string;
   token_type: string;
+  refresh_token?: string | null;
+  session_id?: number | null;
+}
+
+export interface UserSession {
+  id: number;
+  ip_address: string | null;
+  browser: string | null;
+  created_at: string;
+  last_used_at: string;
+  expires_at: string;
+  revoked_at: string | null;
 }
 
 export interface UserProfileUpdatePayload {

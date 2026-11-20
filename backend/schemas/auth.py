@@ -1,32 +1,44 @@
-from pydantic import BaseModel, ConfigDict, field_validator
-
-from schemas.user import validate_email_str, validate_password_strength, validate_user_name
+from datetime import datetime
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class RegisterRequest(BaseModel):
-    # Ignore any extra fields like "role" so a client can never escalate privileges (NFR-18, AC-15)
-    model_config = ConfigDict(extra="ignore")
-
-    name: str
-    email: str
-    password: str
+    name: str = Field(..., min_length=2, max_length=120)
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
 
     @field_validator("name")
     @classmethod
-    def check_name(cls, value: str) -> str:
-        return validate_user_name(value)
+    def clean_name(cls, v: str) -> str:
+        cleaned = v.strip()
+        if len(cleaned) < 2:
+            raise ValueError("Name must be at least 2 characters")
+        return cleaned
 
     @field_validator("email")
     @classmethod
-    def check_email(cls, value: str) -> str:
-        return validate_email_str(value)
-
-    @field_validator("password")
-    @classmethod
-    def check_password(cls, value: str) -> str:
-        return validate_password_strength(value)
+    def normalize_email(cls, v: EmailStr) -> str:
+        return str(v).strip().lower()
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    refresh_token: str | None = None
+    session_id: int | None = None
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str | None = None
+
+
+class SessionRead(BaseModel):
+    id: int
+    ip_address: str | None = None
+    browser: str | None = None
+    created_at: datetime
+    last_used_at: datetime
+    expires_at: datetime
+    revoked_at: datetime | None = None
+
+    model_config = {"from_attributes": True}

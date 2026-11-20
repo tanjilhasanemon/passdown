@@ -11,6 +11,8 @@ import { authApi } from "../api/auth";
 import {
   AUTH_EXPIRED_EVENT,
   getStoredToken,
+  getStoredRefreshToken,
+  setStoredRefreshToken,
   setStoredToken,
 } from "../api/client";
 import { meApi } from "../api/me";
@@ -77,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string): Promise<User> => {
     const tokenRes = await authApi.login(email, password);
     setStoredToken(tokenRes.access_token);
+    if (tokenRes.refresh_token) setStoredRefreshToken(tokenRes.refresh_token);
     setToken(tokenRes.access_token);
     const profile = await meApi.getProfile();
     setUser(profile);
@@ -88,7 +91,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
+    const rt = getStoredRefreshToken();
+    void authApi.logout(rt).catch(() => {});
     setStoredToken(null);
+    setStoredRefreshToken(null);
     setUser(null);
     setToken(null);
     showToast("Signed out", "info");
@@ -109,7 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshProfile,
       }}
     >
-      {children}
+      {loading ? (
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)" }}>
+          Restoring session...
+        </div>
+      ) : (
+        children
+      )}
     </AuthContext.Provider>
   );
 }

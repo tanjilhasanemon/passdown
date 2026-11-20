@@ -2,10 +2,20 @@ import axios from "axios";
 import type { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
 export const TOKEN_STORAGE_KEY = "passdown_access_token";
+export const REFRESH_STORAGE_KEY = "passdown_refresh_token";
 export const AUTH_EXPIRED_EVENT = "passdown:auth-expired";
 
 export function getStoredToken(): string | null {
   return window.sessionStorage.getItem(TOKEN_STORAGE_KEY);
+}
+
+export function getStoredRefreshToken(): string | null {
+  return window.sessionStorage.getItem(REFRESH_STORAGE_KEY);
+}
+
+export function setStoredRefreshToken(token: string | null): void {
+  if (token) window.sessionStorage.setItem(REFRESH_STORAGE_KEY, token);
+  else window.sessionStorage.removeItem(REFRESH_STORAGE_KEY);
 }
 
 export function setStoredToken(token: string | null): void {
@@ -74,7 +84,7 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const requestUrl = error.config?.url ?? "";
       if (!requestUrl.includes("/auth/login")) {

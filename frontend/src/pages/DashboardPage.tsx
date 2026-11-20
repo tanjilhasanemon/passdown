@@ -40,6 +40,7 @@ import {
   type MaterialRequest,
   type MaterialType,
   type RequestStatus,
+  type UserSession,
   type UserSummary,
 } from "../types";
 
@@ -63,6 +64,7 @@ export function DashboardPage() {
   const [contribFilter, setContribFilter] = useState<ContributionStatus | "">("");
 
   const [requests, setRequests] = useState<MaterialRequest[]>([]);
+  const [sessions, setSessions] = useState<UserSession[]>([]);
   const [requestFilter, setRequestFilter] = useState<RequestStatus | "">("");
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -236,6 +238,16 @@ export function DashboardPage() {
       showToast(extractErrorMessage(err), "error");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRevokeSession = async (sessionId: number) => {
+    try {
+      await meApi.revokeSession(sessionId);
+      showToast(`Revoked session #${sessionId}`, "info");
+      await loadDashboardData();
+    } catch (err) {
+      showToast(extractErrorMessage(err), "error");
     }
   };
 
@@ -1090,6 +1102,65 @@ export function DashboardPage() {
           </div>
         </form>
       </Modal>
+
+      {activeTab === "settings" && (
+        <div className="card" style={{ padding: "1.25rem", marginTop: "1.25rem" }}>
+          <h3 style={{ margin: "0 0 0.35rem", fontSize: "1.02rem" }}>Active &amp; Recent Sessions</h3>
+          <p style={{ margin: "0 0 0.9rem", fontSize: "0.84rem", color: "var(--text-secondary)" }}>
+            Review devices signed into your account and revoke any session immediately.
+          </p>
+          {sessions.length === 0 ? (
+            <div className="empty-state">No recorded sessions yet.</div>
+          ) : (
+            <div className="table-wrapper">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Session</th>
+                    <th>Browser / Device</th>
+                    <th>IP Address</th>
+                    <th>Last Used (UTC)</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: "right" }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessions.map((s) => (
+                    <tr key={s.id}>
+                      <td className="mono">#{s.id}</td>
+                      <td>{s.browser || "Unknown browser"}</td>
+                      <td className="mono" style={{ fontSize: "0.8rem" }}>{s.ip_address || "?"}</td>
+                      <td className="mono" style={{ fontSize: "0.78rem" }}>
+                        {new Date(s.last_used_at).toISOString().replace("T", " ").slice(0, 19)}
+                      </td>
+                      <td>
+                        {s.revoked_at ? (
+                          <span className="badge badge-danger">Revoked</span>
+                        ) : (
+                          <span className="badge badge-success">Active</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {!s.revoked_at ? (
+                          <button
+                            type="button"
+                            className="btn btn-danger btn-sm"
+                            onClick={() => void handleRevokeSession(s.id)}
+                          >
+                            Revoke
+                          </button>
+                        ) : (
+                          <span style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>?</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Edit Pending Contribution Modal */}
       <Modal
