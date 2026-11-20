@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { UserPlus, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Sparkles, UserPlus } from "lucide-react";
 import { extractErrorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/ToastContext";
@@ -14,11 +14,19 @@ export function RegisterPage() {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (password !== confirmPassword) {
+      const msg = "Passwords do not match.";
+      setErrorMsg(msg);
+      showToast(msg, "error");
+      return;
+    }
     setSubmitting(true);
     setErrorMsg(null);
     try {
@@ -47,14 +55,14 @@ export function RegisterPage() {
           </h1>
           <p style={{ margin: "0 0 1.4rem", color: "var(--text-secondary)", fontSize: "0.9rem" }}>
             Register a student account to contribute study links, request missing
-            course materials, and track your submissions.
+            course materials, and collaborate in study groups.
           </p>
 
           {errorMsg && (
             <div
               style={{
                 padding: "0.75rem 1rem",
-                borderRadius: "12px",
+                borderRadius: "10px",
                 background: "var(--danger-bg)",
                 color: "var(--danger)",
                 fontSize: "0.86rem",
@@ -66,16 +74,18 @@ export function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} autoComplete="off">
             <div className="form-group">
               <label className="form-label">Full Name (2–100 chars) *</label>
               <input
                 type="text"
+                name="register_full_name"
+                autoComplete="name"
                 className="form-input"
                 required
                 minLength={2}
                 maxLength={100}
-                placeholder="e.g. Tanjil Hasan Emon"
+                placeholder="e.g. Ayesha Rahman"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -85,6 +95,8 @@ export function RegisterPage() {
               <label className="form-label">Email Address *</label>
               <input
                 type="email"
+                name="register_email"
+                autoComplete="off"
                 className="form-input"
                 required
                 maxLength={254}
@@ -99,7 +111,9 @@ export function RegisterPage() {
                 Password (min 8 chars, at least 1 letter &amp; 1 digit) *
               </label>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
+                name="register_new_password"
+                autoComplete="new-password"
                 className="form-input"
                 required
                 minLength={8}
@@ -110,11 +124,38 @@ export function RegisterPage() {
               />
             </div>
 
+            <div className="form-group">
+              <label className="form-label">Confirm Password *</label>
+              <input
+                type={showPassword ? "text" : "password"}
+                name="register_confirm_password"
+                autoComplete="new-password"
+                className="form-input"
+                required
+                minLength={8}
+                maxLength={128}
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
+
+            <div style={{ marginBottom: "0.85rem" }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                {showPassword ? "Hide Passwords" : "Show Passwords"}
+              </button>
+            </div>
+
             <button
               type="submit"
               className="btn btn-primary"
               disabled={submitting}
-              style={{ width: "100%", marginTop: "0.5rem" }}
+              style={{ width: "100%", marginTop: "0.35rem" }}
             >
               <UserPlus size={16} />
               {submitting ? "Creating account..." : "Register Account"}

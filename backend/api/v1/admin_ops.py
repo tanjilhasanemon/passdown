@@ -437,22 +437,36 @@ def list_all_groups_admin(
         pat = f"%{q.strip()}%"
         query = query.filter(or_(StudyGroup.name.ilike(pat), StudyGroup.course_code.ilike(pat)))
     groups = query.order_by(StudyGroup.created_at.desc()).all()
-    out = []
-    for g in groups:
-        owner = db.query(AppUser).filter(AppUser.id == g.owner_id).first()
-        m_cnt = db.query(StudyGroupMember).filter(StudyGroupMember.group_id == g.id).count()
-        r_cnt = db.query(StudyGroupResource).filter(StudyGroupResource.group_id == g.id).count()
-        out.append({
+    if not groups:
+        return []
+    gids = [g.id for g in groups]
+    owner_ids = list({g.owner_id for g in groups})
+    owners = {u.id: u for u in db.query(AppUser).filter(AppUser.id.in_(owner_ids)).all()}
+    m_counts = dict(
+        db.query(StudyGroupMember.group_id, func.count(StudyGroupMember.id))
+        .filter(StudyGroupMember.group_id.in_(gids))
+        .group_by(StudyGroupMember.group_id)
+        .all()
+    )
+    r_counts = dict(
+        db.query(StudyGroupResource.group_id, func.count(StudyGroupResource.id))
+        .filter(StudyGroupResource.group_id.in_(gids))
+        .group_by(StudyGroupResource.group_id)
+        .all()
+    )
+    return [
+        {
             "id": g.id,
             "name": g.name,
             "course_code": g.course_code,
-            "owner_name": owner.name if owner else "Unknown",
-            "owner_email": owner.email if owner else "",
-            "member_count": m_cnt + 1,
-            "resource_count": r_cnt,
+            "owner_name": owners[g.owner_id].name if g.owner_id in owners else "Unknown",
+            "owner_email": owners[g.owner_id].email if g.owner_id in owners else "",
+            "member_count": int(m_counts.get(g.id, 0)) + 1,
+            "resource_count": int(r_counts.get(g.id, 0)),
             "created_at": g.created_at,
-        })
-    return out
+        }
+        for g in groups
+    ]
 
 
 @router.post("/groups/bulk-delete")

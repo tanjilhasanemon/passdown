@@ -119,6 +119,8 @@ def list_my_groups(
     db: Session = Depends(get_db),
     current_user: AppUser = Security(get_current_user, scopes=["profile:read"]),
 ) -> list[StudyGroupSummary]:
+    from sqlalchemy import func
+
     if current_user.role == "admin":
         groups = db.query(StudyGroup).order_by(StudyGroup.created_at.desc()).all()
     else:
@@ -137,7 +139,57 @@ def list_my_groups(
             .order_by(StudyGroup.created_at.desc())
             .all()
         )
-    return [_build_summary(db, g, current_user) for g in groups]
+    if not groups:
+        return []
+
+    gids = [g.id for g in groups]
+    owner_ids = list({g.owner_id for g in groups})
+    owners = {u.id: u for u in db.query(AppUser).filter(AppUser.id.in_(owner_ids)).all()}
+    member_counts = dict(
+        db.query(StudyGroupMember.group_id, func.count(StudyGroupMember.id))
+        .filter(StudyGroupMember.group_id.in_(gids))
+        .group_by(StudyGroupMember.group_id)
+        .all()
+    )
+    res_counts = dict(
+        db.query(StudyGroupResource.group_id, func.count(StudyGroupResource.id))
+        .filter(StudyGroupResource.group_id.in_(gids))
+        .group_by(StudyGroupResource.group_id)
+        .all()
+    )
+    my_memberships = {
+        m.group_id: m
+        for m in db.query(StudyGroupMember)
+        .filter(StudyGroupMember.group_id.in_(gids), StudyGroupMember.user_id == current_user.id)
+        .all()
+    }
+
+    summaries: list[StudyGroupSummary] = []
+    for g in groups:
+        owner = owners.get(g.owner_id)
+        is_owner = g.owner_id == current_user.id
+        mem = my_memberships.get(g.id)
+        summaries.append(
+            StudyGroupSummary(
+                id=g.id,
+                name=g.name,
+                description=g.description,
+                course_code=g.course_code,
+                owner_id=g.owner_id,
+                owner_name=owner.name if owner else "Unknown",
+                owner_email=owner.email if owner else "",
+                member_count=int(member_counts.get(g.id, 0)),
+                resource_count=int(res_counts.get(g.id, 0)),
+                is_owner=is_owner,
+                my_permissions={
+                    "can_create": is_owner or bool(mem and mem.can_create),
+                    "can_edit": is_owner or bool(mem and mem.can_edit),
+                    "can_assign": is_owner or bool(mem and mem.can_assign),
+                },
+                created_at=g.created_at,
+            )
+        )
+    return summaries
 
 
 @router.post("", response_model=StudyGroupDetail, status_code=status.HTTP_201_CREATED)
