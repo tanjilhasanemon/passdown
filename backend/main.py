@@ -80,8 +80,6 @@ app.include_router(requests.router, prefix=settings.api_v1_prefix)
 
 @app.get("/api/health", tags=["System"])
 def health() -> dict[str, str]:
-    init_db()
-    ensure_ban_reason_column()
     return {"status": "ok"}
 
 

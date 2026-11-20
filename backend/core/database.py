@@ -43,8 +43,6 @@ def _build_engine() -> Engine:
             pool_recycle=300,
             connect_args={"prepare_threshold": None, "connect_timeout": 5},
         )
-        with pg_engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
         return pg_engine
     except Exception as exc:
         print(f"[PassDown] PostgreSQL connection failed ({exc}); falling back to SQLite.")
@@ -96,6 +94,17 @@ def init_db() -> None:
     import models  # noqa: F401
     from scripts.seed_admin import seed_admin_user, seed_demo_student
     from scripts.seed_mvp import seed_mvp_data
+
+    # Fast-path check for already-initialized production DB
+    try:
+        with engine.connect() as conn:
+            cnt = conn.execute(text('SELECT COUNT(*) FROM app_user')).scalar() or 0
+            grp_cnt = conn.execute(text('SELECT COUNT(*) FROM study_group')).scalar() or 0
+            if cnt >= 5 and grp_cnt >= 1:
+                _db_initialized = True
+                return
+    except Exception:
+        pass
 
     Base.metadata.create_all(bind=engine)
     _ensure_beta_columns()

@@ -21,7 +21,13 @@ from models.user_session import UserSession
 router = APIRouter(prefix="/admin", tags=["Admin Operations"])
 
 
+_ban_col_checked = False
+
+
 def ensure_ban_reason_column() -> None:
+    global _ban_col_checked
+    if _ban_col_checked:
+        return
     """Safely add ban_reason column on existing SQLite/PostgreSQL databases."""
     try:
         with engine.begin() as conn:
@@ -31,8 +37,9 @@ def ensure_ban_reason_column() -> None:
                 cols = [r[1] for r in conn.execute(text("PRAGMA table_info(app_user)")).fetchall()]
                 if "ban_reason" not in cols:
                     conn.execute(text("ALTER TABLE app_user ADD COLUMN ban_reason VARCHAR(255)"))
+        _ban_col_checked = True
     except Exception:
-        pass
+        _ban_col_checked = True
 
 
 class BanPayload(BaseModel):
