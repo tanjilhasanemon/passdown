@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { KeyRound, LogIn, ShieldCheck, UserCheck } from "lucide-react";
+import { Eye, EyeOff, LogIn, ShieldCheck, UserCheck } from "lucide-react";
 import { extractErrorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/ToastContext";
