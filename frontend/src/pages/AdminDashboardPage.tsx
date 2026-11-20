@@ -30,6 +30,8 @@ import {
   RequestStatusBadge,
 } from "../components/Badge";
 import { AdminActivityTab } from "../components/AdminActivityTab";
+import { AdminGroupsTab } from "../components/AdminGroupsTab";
+import { AdminUsersTab } from "../components/AdminUsersTab";
 import { AdminSecurityTab } from "../components/AdminSecurityTab";
 import { useToast } from "../components/ToastContext";
 import type {
@@ -42,7 +44,7 @@ import type {
   User,
 } from "../types";
 
-type AdminTab = "moderation" | "requests" | "users" | "activity" | "security";
+type AdminTab = "moderation" | "requests" | "users" | "groups" | "activity" | "security";
 
 export function AdminDashboardPage() {
   const { user: currentAdmin } = useAuth();
@@ -66,6 +68,7 @@ export function AdminDashboardPage() {
   const [courseFilter, setCourseFilter] = useState<number | undefined>(undefined);
 
   const [users, setUsers] = useState<User[]>([]);
+  const [extStats, setExtStats] = useState({ banned_users: 0, groups: 0, new_users_7d: 0, new_records_7d: 0 });
   const [loading, setLoading] = useState<boolean>(true);
 
   const loadAdminData = useCallback(async () => {
@@ -318,6 +321,18 @@ export function AdminDashboardPage() {
         >
           <Activity size={16} />
           Activity Log
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "groups"}
+          className={`tab-btn ${activeTab === "groups" ? "active" : ""}`}
+          onClick={() => setActiveTab("groups")}
+        >
+          <Layers size={16} />
+          Study Groups
+          <span className="badge badge-neutral">{extStats.groups}</span>
         </button>
 
         <button
@@ -588,82 +603,9 @@ export function AdminDashboardPage() {
       )}
 
       {/* TAB 3: User Management */}
-      {activeTab === "users" && (
-        <div className="table-wrapper">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name &amp; Email</th>
-                <th>Role</th>
-                <th>Account Status</th>
-                <th>Joined</th>
-                <th style={{ textAlign: "right" }}>Access Control</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => {
-                const isSelf = currentAdmin?.id === u.id;
-                return (
-                  <tr key={u.id}>
-                    <td className="mono">#{u.id}</td>
-                    <td>
-                      <div style={{ fontWeight: 700 }}>{u.name}</div>
-                      <div style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                        {u.email}
-                      </div>
-                    </td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          u.role === "admin" ? "badge-info" : "badge-neutral"
-                        }`}
-                      >
-                        {u.role.toUpperCase()}
-                      </span>
-                    </td>
-                    <td>
-                      {u.is_active ? (
-                        <span className="badge badge-success">
-                          <UserCheck size={13} /> Active
-                        </span>
-                      ) : (
-                        <span className="badge badge-danger">
-                          <UserX size={13} /> Deactivated
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ fontSize: "0.82rem", color: "var(--text-secondary)" }}>
-                      {new Date(u.created_at).toLocaleDateString()}
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      {isSelf ? (
-                        <span className="badge badge-neutral">Current Admin (You)</span>
-                      ) : u.is_active ? (
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => void handleToggleUserActive(u)}
-                        >
-                          <UserX size={14} /> Deactivate
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="btn btn-success btn-sm"
-                          onClick={() => void handleToggleUserActive(u)}
-                        >
-                          <UserCheck size={14} /> Reactivate
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {activeTab === "users" && <AdminUsersTab onChanged={loadAdminData} />}
+
+      {activeTab === "groups" && <AdminGroupsTab onChanged={loadAdminData} />}
 
       {activeTab === "activity" && <AdminActivityTab />}
 
