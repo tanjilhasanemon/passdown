@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { contributionsApi } from "../api/contributions";
 import { useAuth } from "../auth/AuthContext";
+import { TopLoadingBar } from "./TopLoadingBar";
 
 export function Layout({ children }: { children: ReactNode }) {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
@@ -64,6 +65,7 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <TopLoadingBar />
       <header className="navbar">
         <div className="navbar-inner">
           <NavLink to="/" className="brand" style={{ flexShrink: 0 }}>

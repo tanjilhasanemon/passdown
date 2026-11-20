@@ -42,11 +42,30 @@ function getCacheKey(config: InternalAxiosRequestConfig): string {
   return `${token}:${config.url ?? ""}:${params}`;
 }
 
+
+type LoadingListener = (activeCount: number) => void;
+let activeRequests = 0;
+const loadingListeners = new Set<LoadingListener>();
+
+function notifyLoading(delta: number): void {
+  activeRequests = Math.max(0, activeRequests + delta);
+  loadingListeners.forEach((fn) => fn(activeRequests));
+}
+
+export function subscribeNetworkLoading(listener: LoadingListener): () => void {
+  loadingListeners.add(listener);
+  listener(activeRequests);
+  return () => {
+    loadingListeners.delete(listener);
+  };
+}
+
 export function clearApiCache(): void {
   responseCache.clear();
 }
 
 apiClient.interceptors.request.use((config) => {
+  notifyLoading(1);
   const token = getStoredToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -74,6 +93,7 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => {
+    notifyLoading(-1);
     const method = (response.config.method ?? "get").toLowerCase();
     if (method === "get" && response.status === 200) {
       const key = getCacheKey(response.config);
@@ -85,6 +105,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error) => {
+    notifyLoading(-1);
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       const origConfig = error.config as (InternalAxiosRequestConfig & { _retry?: boolean }) | undefined;
       const requestUrl = origConfig?.url ?? "";
