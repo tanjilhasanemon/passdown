@@ -175,18 +175,42 @@ export function RegisterPage() {
 
             <div className="form-group">
               <label className="form-label">Confirm Password *</label>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="register_confirm_password"
-                autoComplete="new-password"
-                className="form-input"
-                required
-                minLength={8}
-                maxLength={128}
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+              <div style={{ position: "relative", width: "100%" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="register_confirm_password"
+                  autoComplete="new-password"
+                  className="form-input"
+                  style={{ width: "100%", boxSizing: "border-box", paddingRight: "2.6rem" }}
+                  required
+                  minLength={8}
+                  maxLength={128}
+                  placeholder="Re-enter your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  style={{
+                    position: "absolute",
+                    right: "0.65rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "0.25rem",
+                    zIndex: 2,
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
               {confirmPassword.length > 0 && (
                 <div style={{ marginTop: "0.4rem", fontSize: "0.78rem", display: "inline-flex", alignItems: "center", gap: "0.35rem", color: passwordsMatch ? "var(--success)" : "var(--danger)" }}>
                   {passwordsMatch ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
