@@ -131,4 +131,106 @@ export const adminApi = {
     });
     return response.data;
   },
+  async getExtendedOverview(): Promise<{
+    banned_users: number;
+    groups: number;
+    new_users_7d: number;
+    new_records_7d: number;
+  }> {
+    const res = await apiClient.get("/admin/overview-extended", { params: { _t: Date.now() } });
+    return res.data;
+  },
+
+  async searchUsers(params?: {
+    q?: string;
+    role?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{
+    items: (User & { ban_reason?: string | null })[];
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const res = await apiClient.get("/admin/users/search", {
+      params: {
+        q: params?.q || undefined,
+        role: params?.role || undefined,
+        status: params?.status || undefined,
+        limit: params?.limit ?? 12,
+        offset: params?.offset ?? 0,
+        _t: Date.now(),
+      },
+    });
+    return res.data;
+  },
+
+  async getUserDetail(userId: number): Promise<any> {
+    const res = await apiClient.get(`/admin/users/${userId}/detail`, { params: { _t: Date.now() } });
+    return res.data;
+  },
+
+  async banUser(userId: number, isActive: boolean, reason?: string): Promise<void> {
+    await apiClient.post(`/admin/users/${userId}/ban`, { is_active: isActive, reason });
+  },
+
+  async changeUserRole(userId: number, role: "student" | "admin"): Promise<void> {
+    await apiClient.patch(`/admin/users/${userId}/role`, { role });
+  },
+
+  async revokeUserSessions(userId: number): Promise<{ revoked_count: number }> {
+    const res = await apiClient.post(`/admin/users/${userId}/revoke-sessions`);
+    return res.data;
+  },
+
+  async bulkBanUsers(userIds: number[], isActive: boolean, reason?: string): Promise<{ updated_count: number }> {
+    const res = await apiClient.post("/admin/users/bulk-ban", {
+      user_ids: userIds,
+      is_active: isActive,
+      reason,
+    });
+    return res.data;
+  },
+
+  async exportUsersCsv(params?: { q?: string; role?: string; status?: string }): Promise<void> {
+    const res = await apiClient.get<Blob>("/admin/users/export", {
+      params: { q: params?.q || undefined, role: params?.role || undefined, status: params?.status || undefined },
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `passdown-users-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  },
+
+  async exportContributionsCsv(params?: { status?: string; course_id?: number }): Promise<void> {
+    const res = await apiClient.get<Blob>("/admin/contributions/export", {
+      params: { status: params?.status || undefined, course_id: params?.course_id || undefined },
+      responseType: "blob",
+    });
+    const url = window.URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `passdown-contributions-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  },
+
+  async bulkDeleteContributions(ids: number[]): Promise<{ deleted_count: number }> {
+    const res = await apiClient.post("/admin/contributions/bulk-delete", { ids });
+    return res.data;
+  },
+
+  async listGroupsAdmin(q?: string): Promise<any[]> {
+    const res = await apiClient.get("/admin/groups", { params: { q: q || undefined, _t: Date.now() } });
+    return res.data;
+  },
+
+  async bulkDeleteGroups(ids: number[]): Promise<{ deleted_count: number }> {
+    const res = await apiClient.post("/admin/groups/bulk-delete", { ids });
+    return res.data;
+  },
 };

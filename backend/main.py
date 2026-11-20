@@ -10,7 +10,7 @@ if str(BACKEND_DIR) not in sys.path:
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from api.v1 import admin, auth, contributions, core_materials, courses, groups, me, requests
+from api.v1 import admin, admin_ops, auth, contributions, core_materials, courses, groups, me, requests
 from core.config import settings
 from core.database import init_db
 
@@ -63,6 +63,7 @@ async def add_security_headers(
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
 app.include_router(me.router, prefix=settings.api_v1_prefix)
 app.include_router(admin.router, prefix=settings.api_v1_prefix)
+app.include_router(admin_ops.router, prefix=settings.api_v1_prefix)
 app.include_router(groups.router, prefix=settings.api_v1_prefix)
 app.include_router(courses.router, prefix=settings.api_v1_prefix)
 app.include_router(core_materials.router, prefix=settings.api_v1_prefix)
