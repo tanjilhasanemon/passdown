@@ -8,6 +8,7 @@ import type {
   User,
   UserPasswordUpdatePayload,
   UserProfileUpdatePayload,
+  UserSession,
   UserSummary,
 } from "../types";
 
@@ -65,5 +66,14 @@ export const meApi = {
       }
     );
     return response.data;
+  },
+
+  async listSessions(): Promise<UserSession[]> {
+    const response = await apiClient.get<UserSession[]>("/me/sessions");
+    return response.data;
+  },
+
+  async revokeSession(sessionId: number): Promise<void> {
+    await apiClient.delete(`/me/sessions/${sessionId}`);
   },
 };

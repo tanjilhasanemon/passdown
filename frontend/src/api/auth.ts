@@ -8,19 +8,16 @@ export const authApi = {
   },
 
   async login(email: string, password: string): Promise<TokenResponse> {
-    const formData = new URLSearchParams();
-    formData.append("username", email.trim());
-    formData.append("password", password);
-
-    const response = await apiClient.post<TokenResponse>(
-      "/auth/login",
-      formData,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
+    const form = new URLSearchParams();
+    form.append("username", email);
+    form.append("password", password);
+    const response = await apiClient.post<TokenResponse>("/auth/login", form, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
     return response.data;
+  },
+
+  async logout(refreshToken: string | null): Promise<void> {
+    await apiClient.post("/auth/logout", { refresh_token: refreshToken });
   },
 };

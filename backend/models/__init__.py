@@ -14,3 +14,5 @@ __all__ = [
     "MaterialRequest",
     "Request",
 ]
+
+from models.user_session import UserSession

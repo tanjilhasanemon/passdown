@@ -25,9 +25,11 @@ class Settings(BaseSettings):
     # Beta JWT & Auth Settings (NFR-13, FR-31, FR-41)
     jwt_secret: str = "passdown-default-jwt-secret-key-minimum-32-characters-2026"
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60
+    jwt_expire_minutes: int = 15
     login_max_attempts: int = 5
     login_lockout_minutes: int = 15
+    password_pepper: str = "passdown-dev-pepper-change-in-production"
+    refresh_expire_days: int = 7
 
     # Seed Admin Settings (FR-41)
     admin_name: str = "PassDown Admin"

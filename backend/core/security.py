@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -39,17 +41,34 @@ def get_scopes_for_role(role: str) -> list[str]:
     return list(ROLE_SCOPES.get(role, ROLE_SCOPES["student"]))
 
 
+def _apply_pepper(plain_password: str) -> str:
+    return f"{plain_password}{settings.password_pepper}"
+
+
 def hash_password(plain_password: str) -> str:
-    """Hash a plaintext password using Argon2id."""
-    return _password_hasher.hash(plain_password)
+    """Hash a plaintext password + server-side pepper using Argon2id."""
+    return _password_hasher.hash(_apply_pepper(plain_password))
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
-    """Verify a plaintext password against an Argon2id hash."""
-    try:
-        return _password_hasher.verify(password_hash, plain_password)
-    except (VerifyMismatchError, VerificationError, InvalidHashError):
-        return False
+    """Verify password with pepper (with legacy fallback for pre-pepper seeded hashes)."""
+    for candidate in (_apply_pepper(plain_password), plain_password):
+        try:
+            if _password_hasher.verify(password_hash, candidate):
+                return True
+        except (VerifyMismatchError, VerificationError, InvalidHashError):
+            continue
+    return False
+
+
+def generate_refresh_token() -> str:
+    """Generate a cryptographically secure opaque refresh token."""
+    return secrets.token_urlsafe(48)
+
+
+def hash_refresh_token(raw_token: str) -> str:
+    """Store only the SHA-256 digest of refresh tokens in the database."""
+    return hashlib.sha256(f"{raw_token}{settings.password_pepper}".encode("utf-8")).hexdigest()
 
 
 def create_access_token(
