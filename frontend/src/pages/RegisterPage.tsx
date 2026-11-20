@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Sparkles, UserPlus } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Sparkles, UserPlus, XCircle } from "lucide-react";
 import { extractErrorMessage } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { useToast } from "../components/ToastContext";
@@ -19,8 +19,20 @@ export function RegisterPage() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const hasMinLen = password.length >= 8;
+  const hasLetter = /[A-Za-z]/.test(password);
+  const hasDigit = /\d/.test(password);
+  const passwordValid = hasMinLen && hasLetter && hasDigit;
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword;
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (!passwordValid) {
+      const msg = "Password must be at least 8 characters with at least 1 letter and 1 digit.";
+      setErrorMsg(msg);
+      showToast(msg, "error");
+      return;
+    }
     if (password !== confirmPassword) {
       const msg = "Passwords do not match.";
       setErrorMsg(msg);
@@ -85,7 +97,7 @@ export function RegisterPage() {
                 required
                 minLength={2}
                 maxLength={100}
-                placeholder="e.g. Ayesha Rahman"
+                placeholder="e.g. Sayef Reyadh"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -100,7 +112,7 @@ export function RegisterPage() {
                 className="form-input"
                 required
                 maxLength={254}
-                placeholder="you@iub.edu.bd"
+                placeholder="e.g. name@domain.edu"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -110,18 +122,55 @@ export function RegisterPage() {
               <label className="form-label">
                 Password (min 8 chars, at least 1 letter &amp; 1 digit) *
               </label>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="register_new_password"
-                autoComplete="new-password"
-                className="form-input"
-                required
-                minLength={8}
-                maxLength={128}
-                placeholder="At least 8 characters with letter & number"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="register_new_password"
+                  autoComplete="new-password"
+                  className="form-input"
+                  style={{ paddingRight: "2.6rem" }}
+                  required
+                  minLength={8}
+                  maxLength={128}
+                  placeholder="At least 8 characters with 1 letter & 1 digit"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  style={{
+                    position: "absolute",
+                    right: "0.55rem",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--text-muted)",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    padding: "0.25rem",
+                  }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+
+              {password.length > 0 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.28rem", marginTop: "0.5rem", fontSize: "0.78rem" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", color: hasMinLen ? "var(--success)" : "var(--danger)" }}>
+                    {hasMinLen ? <CheckCircle2 size={13} /> : <XCircle size={13} />} At least 8 characters
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", color: hasLetter ? "var(--success)" : "var(--danger)" }}>
+                    {hasLetter ? <CheckCircle2 size={13} /> : <XCircle size={13} />} Contains at least 1 letter (A–Z)
+                  </span>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", color: hasDigit ? "var(--success)" : "var(--danger)" }}>
+                    {hasDigit ? <CheckCircle2 size={13} /> : <XCircle size={13} />} Contains at least 1 digit (0–9)
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="form-group">
@@ -138,23 +187,18 @@ export function RegisterPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
-            </div>
-
-            <div style={{ marginBottom: "0.85rem" }}>
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => setShowPassword((v) => !v)}
-              >
-                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                {showPassword ? "Hide Passwords" : "Show Passwords"}
-              </button>
+              {confirmPassword.length > 0 && (
+                <div style={{ marginTop: "0.4rem", fontSize: "0.78rem", display: "inline-flex", alignItems: "center", gap: "0.35rem", color: passwordsMatch ? "var(--success)" : "var(--danger)" }}>
+                  {passwordsMatch ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
+                  {passwordsMatch ? "Passwords match" : "Passwords do not match"}
+                </div>
+              )}
             </div>
 
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={submitting}
+              disabled={submitting || (password.length > 0 && !passwordValid) || (confirmPassword.length > 0 && !passwordsMatch)}
               style={{ width: "100%", marginTop: "0.35rem" }}
             >
               <UserPlus size={16} />
